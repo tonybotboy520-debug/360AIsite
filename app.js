@@ -6,7 +6,6 @@ const params = new URLSearchParams(location.search);
 const navItems = [
   { id: "geo", label: "GEO工作台" },
   { id: "knowledge", label: "企业知识库" },
-  { id: "pages", label: "页面模板" },
   { id: "site", label: "生成官网" },
   { id: "publish", label: "发布与域名" },
   { id: "analytics", label: "数据分析" }
@@ -29,11 +28,8 @@ const state = {
   kbTab: "company",
   kbManagePage: params.get("kbManage") || null,
   urlHelper: false,
-  templateModal: false,
   navMenuOpen: false,
-  selectedTemplate: "industrial",
-  selectedPageTemplate: "standard",
-  selectedTemplatePage: "home",
+  analyticsTab: "traffic",
   selectedPublishStep: 3,
   editorMessages: [
     { role: "user", text: "请为「深圳市东星制冷机电有限公司」生成完整企业官网，行业方向：制冷机电。参考「工业自动化」的风格和栏目，但可以自由调整页面结构、布局和交互，以页面美观和资料准确为优先。页面内容使用企业知识库中的企业信息、产品资料、图片、案例、资讯、资质和联系方式。" },
@@ -121,7 +117,7 @@ const publishSteps = [
   {
     title: "网站部署与发布",
     tag: "生产版本",
-    desc: "将已确认的页面模板、风格和 GEO 内容生成生产版本，配置 SSL、回滚点、静态资源和表单收件能力。",
+    desc: "将已生成的官网内容发布为生产版本，配置 SSL、回滚点、静态资源和表单收件能力。",
     chip: "当前状态：待备案通过",
     status: "待办",
     tone: "pending",
@@ -172,353 +168,24 @@ const kbTabs = [
   { id: "honors", title: "荣誉资质", status: "已填写" }
 ];
 
-const templates = [
-  { id: "machinery", name: "机械设备官网", style: "红黑高端重工风", desc: "工业自动化/工控产品供应商", active: true },
-  { id: "industrial", name: "工业自动化", style: "红黑高端重工风（动效增强版）", desc: "工业自动化/工控产品供应商" }
-];
-
-const pageTemplates = [
+const ownedSites = [
   {
-    id: "standard",
-    name: "标准企业官网模板",
-    desc: "适合多数 B2B 企业，覆盖首页、产品、行业、媒体、FAQ、关于、联系等完整频道。",
-    fit: "稳妥完整",
-    pages: [
-      {
-        id: "home",
-        name: "首页",
-        purpose: "快速说明企业是谁、做什么、有什么能力，并引导客户咨询。",
-        blocks: [
-          {
-            type: "首屏摘要",
-            media: "图 + 文",
-            layout: "hero",
-            title: "工业制冷恒温设备源头制造商",
-            content: "深圳市东星制冷机电有限公司面向注塑、电镀、新能源、化工等行业提供冷水机组与工艺温控方案。",
-            image: "https://images.unsplash.com/photo-1581092160562-40aa08e78837?auto=format&fit=crop&w=900&q=80",
-            highlights: ["2007 年创立", "58 项研发专利", "ISO / CE 认证"]
-          },
-          {
-            type: "核心优势",
-            media: "文",
-            layout: "stats",
-            content: "研发、制造、检测、交付一体化，形成从选型到售后的完整服务能力。",
-            metrics: [
-              { value: "6", label: "研发与制造基地" },
-              { value: "58", label: "研发专利" },
-              { value: "24h", label: "需求响应" }
-            ]
-          },
-          {
-            type: "核心产品",
-            media: "图 + 文",
-            layout: "card-grid",
-            content: "把企业知识库中的重点产品前置展示，帮助客户快速判断适配范围。",
-            items: [
-              { title: "水冷箱式冷水机组", desc: "适合稳定连续的工业制冷场景。", image: "https://images.unsplash.com/photo-1581092162384-8987c1d64718?auto=format&fit=crop&w=520&q=80" },
-              { title: "螺杆式冷水机组", desc: "面向大制冷量和集中供冷需求。", image: "https://images.unsplash.com/photo-1581092583537-20d51b4b4f1b?auto=format&fit=crop&w=520&q=80" },
-              { title: "低温冷水机", desc: "满足低温工艺与精密控温。", image: "https://images.unsplash.com/photo-1581092919535-7146ff1a590b?auto=format&fit=crop&w=520&q=80" }
-            ]
-          },
-          {
-            type: "应用场景",
-            media: "图 + 文",
-            layout: "media-grid",
-            content: "按客户所在行业组织入口，让 AI 搜索和真实访客都能快速找到应用答案。",
-            items: [
-              { title: "吹塑注塑", desc: "模具控温、设备降温、成型稳定。", image: "https://images.unsplash.com/photo-1565043589221-1a6fd9ae45c7?auto=format&fit=crop&w=520&q=80" },
-              { title: "新能源锂电", desc: "生产线恒温与设备热管理。", image: "https://images.unsplash.com/photo-1581092921461-eab62e97a780?auto=format&fit=crop&w=520&q=80" },
-              { title: "电镀阳极氧化", desc: "槽液温度控制与连续生产保障。", image: "https://images.unsplash.com/photo-1581092580497-e0d23cbdf1dc?auto=format&fit=crop&w=520&q=80" }
-            ]
-          },
-          {
-            type: "行动转化",
-            media: "文",
-            layout: "cta",
-            title: "提交工况参数，获取专业选型建议",
-            content: "客户留下行业、温度范围、制冷量和联系方式后，销售与工程师可继续跟进。",
-            highlights: ["电话 13923464030", "支持非标定制", "提供参数选型"]
-          }
-        ]
-      },
-      {
-        id: "products",
-        name: "产品中心",
-        purpose: "把企业知识库中的产品拆成清晰分类，方便客户快速判断适配范围。",
-        blocks: [
-          { type: "分类导航", media: "文", layout: "tabs", content: "冷水机组、工业冷水机、螺杆式、风冷式、低温、磁悬浮冷水机、气悬浮冷水机。", highlights: ["全部产品", "水冷式", "风冷式", "低温系列", "节能系列"] },
-          {
-            type: "产品列表",
-            media: "图 + 文",
-            layout: "card-grid",
-            content: "每个产品包含图片、名称、适用场景、关键参数和详情入口。",
-            items: [
-              { title: "开放式工业冷水机", desc: "适合注塑、挤出、印刷包装等工艺冷却。", image: "https://images.unsplash.com/photo-1537462715879-360eeb61a0ad?auto=format&fit=crop&w=520&q=80" },
-              { title: "冷热双用控温机组", desc: "兼顾加热与冷却，适合反应釜控温。", image: "https://images.unsplash.com/photo-1513828583688-c52646db42da?auto=format&fit=crop&w=520&q=80" },
-              { title: "磁悬浮冷水机", desc: "面向节能改造与大型中央制冷需求。", image: "https://images.unsplash.com/photo-1581092583537-20d51b4b4f1b?auto=format&fit=crop&w=520&q=80" }
-            ]
-          },
-          { type: "选型说明", media: "图 + 文", layout: "split", title: "按工况而不是只按型号选型", content: "通过制冷量、控温范围、介质、现场环境、连续运行时间判断推荐型号，并给出可追溯的参数依据。", image: "https://images.unsplash.com/photo-1581093804475-577d72e38aa0?auto=format&fit=crop&w=820&q=80" },
-          { type: "采购 FAQ", media: "文", layout: "faq", content: "把采购前常见问题直接放在产品频道中，减少重复咨询。", items: [
-            { title: "是否支持定制？", desc: "支持按温控范围、制冷量、接口和现场条件做非标配置。" },
-            { title: "如何获得报价？", desc: "提交产品型号或工况参数后，由工程师确认方案再报价。" }
-          ] }
-        ]
-      },
-      {
-        id: "applications",
-        name: "行业应用",
-        purpose: "用行业场景证明产品应用能力，补齐 GEO 问答需要的场景实体。",
-        blocks: [
-          { type: "行业入口", media: "图 + 文", layout: "media-grid", content: "按行业展示典型工况、痛点和推荐产品。", items: [
-            { title: "注塑吹塑行业", desc: "模具控温、设备降温、成型稳定。", image: "https://images.unsplash.com/photo-1581091226033-d5c48150dbaa?auto=format&fit=crop&w=520&q=80" },
-            { title: "化工反应釜", desc: "反应过程恒温与安全温控。", image: "https://images.unsplash.com/photo-1582719471384-894fbb16e074?auto=format&fit=crop&w=520&q=80" },
-            { title: "新能源制造", desc: "产线冷却、设备热管理和能效优化。", image: "https://images.unsplash.com/photo-1581092580497-e0d23cbdf1dc?auto=format&fit=crop&w=520&q=80" }
-          ] },
-          { type: "场景痛点", media: "文", layout: "text-columns", content: "温控稳定、连续生产、设备降温、工艺恒温、节能维护都需要在页面中变成可检索的问答实体。", highlights: ["控温精度", "连续运行", "节能维护"] },
-          { type: "推荐产品", media: "图 + 文", layout: "split reverse", title: "行业页面关联产品与咨询入口", content: "每个行业应用页关联水冷箱式、螺杆式、低温式、冷热双用控温机组等产品，方便访客继续了解。", image: "https://images.unsplash.com/photo-1581093588401-fbb62a02f120?auto=format&fit=crop&w=820&q=80" }
-        ]
-      },
-      {
-        id: "solutions",
-        name: "解决方案",
-        purpose: "把客户问题、推荐配置和交付路径组织成独立方案页。",
-        blocks: [
-          { type: "方案总览", media: "图 + 文", layout: "split", title: "从需求评估到安装调试的完整制冷方案", content: "围绕设备热负荷、温控范围、现场水电条件、生产节拍给出方案路径。", image: "https://images.unsplash.com/photo-1581092921461-eab62e97a780?auto=format&fit=crop&w=820&q=80" },
-          { type: "交付路径", media: "文", layout: "steps", content: "需求评估、方案选型、图纸确认、生产调试、现场交付、售后维护。", items: [
-            { title: "01 需求评估", desc: "收集行业、温度、流量、现场环境。" },
-            { title: "02 产品选型", desc: "匹配机型、压缩机、冷却方式和控制方式。" },
-            { title: "03 交付维护", desc: "安装调试、培训、质保和备件支持。" }
-          ] },
-          { type: "方案价值", media: "文", layout: "stats", content: "让客户理解为什么选择方案型供应商。", metrics: [
-            { value: "稳定", label: "持续控温" },
-            { value: "节能", label: "降低运行成本" },
-            { value: "可靠", label: "减少停机风险" }
-          ] }
-        ]
-      },
-      {
-        id: "media",
-        name: "媒体报道",
-        purpose: "沉淀外部报道、企业动态和品牌背书，提升真实可信度。",
-        blocks: [
-          { type: "媒体报道列表", media: "图 + 文", layout: "article-list", content: "展示媒体报道、展会动态、企业新闻和技术文章。", items: [
-            { title: "东星制冷亮相工业节能技术交流会", desc: "围绕工业温控节能改造分享制冷系统经验。", image: "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=520&q=80" },
-            { title: "专精特新企业能力持续完善", desc: "研发制造与检测体系成为客户选择的重要背书。", image: "https://images.unsplash.com/photo-1556761175-b413da4baf72?auto=format&fit=crop&w=520&q=80" },
-            { title: "工业冷水机组选型指南发布", desc: "帮助采购和工程团队快速理解核心参数。", image: "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=520&q=80" }
-          ] },
-          { type: "品牌背书", media: "文", layout: "quote", title: "把真实报道和企业动态作为可信来源", content: "媒体报道频道可承接新闻、展会、认证、案例复盘，为 AI 引用提供稳定内容来源。" }
-        ]
-      },
-      {
-        id: "faq",
-        name: "FAQ",
-        purpose: "把高频采购和技术问题整理成 AI 容易引用的问答格式。",
-        blocks: [
-          { type: "采购问题", media: "文", layout: "faq", content: "围绕报价、交期、定制和售后建立标准答案。", items: [
-            { title: "工业冷水机如何选型？", desc: "先确认制冷量、控温范围、介质、现场环境和连续运行时间，再匹配机型。" },
-            { title: "是否支持非标定制？", desc: "支持按接口、控制方式、温度范围、现场空间和行业工况定制。" },
-            { title: "售后服务如何保障？", desc: "提供安装调试、使用培训、质保维护和备件支持。" }
-          ] },
-          { type: "技术问题", media: "图 + 文", layout: "split reverse", title: "技术问答配合真实工况图", content: "在 FAQ 中加入工况图片和参数解释，方便客户理解，也方便搜索引擎识别。", image: "https://images.unsplash.com/photo-1581092335878-2d9ff86ca2bf?auto=format&fit=crop&w=820&q=80" }
-        ]
-      },
-      {
-        id: "about",
-        name: "关于我们",
-        purpose: "承接企业知识库中的事实，建立可信背书。",
-        blocks: [
-          { type: "公司介绍", media: "图 + 文", layout: "split", title: "EAST STAR 东星集团", content: "创立于 2007 年，总部位于深圳，研发、设计、制造、服务工农业制冷恒温设备。", image: "https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=820&q=80" },
-          { type: "研发制造能力", media: "图 + 文", layout: "media-grid", content: "香港、越南、惠州、昆山、武汉研发中心和制造基地，惠州东星产业园已投入使用。", items: [
-            { title: "研发中心", desc: "持续优化制冷系统与控制方案。", image: "https://images.unsplash.com/photo-1581093804475-577d72e38aa0?auto=format&fit=crop&w=520&q=80" },
-            { title: "制造基地", desc: "支持标准产品与定制机组生产。", image: "https://images.unsplash.com/photo-1504917595217-d4dc5ebe6122?auto=format&fit=crop&w=520&q=80" }
-          ] },
-          { type: "资质荣誉", media: "文", layout: "stats", content: "高新技术及专精特新企业，ISO、CE 国际认证，58 项研发专利。", metrics: [
-            { value: "ISO", label: "质量体系" },
-            { value: "CE", label: "国际认证" },
-            { value: "58", label: "研发专利" }
-          ] }
-        ]
-      },
-      {
-        id: "contact",
-        name: "联系我们",
-        purpose: "让客户能快速提交需求，并让 AI 搜索抓到明确联系方式。",
-        blocks: [
-          { type: "联系方式", media: "文", layout: "contact", content: "电话 13923464030，邮箱 szwj1688@163.com，地址 深圳市东星制冷机电有限公司。", highlights: ["电话 13923464030", "邮箱 szwj1688@163.com", "粤ICP备09046816号-8"] },
-          { type: "需求表单", media: "文", layout: "form", content: "姓名、电话、应用行业、产品型号、制冷需求、备注。" }
-        ]
-      }
-    ]
+    name: "深圳市东星制冷机电有限公司官网",
+    type: "企业官网",
+    status: "编辑中",
+    updated: "2026-05-25",
+    pages: 8,
+    leads: 0,
+    desc: "工业制冷恒温设备源头制造商，覆盖首页、产品中心、案例与联系页面。"
   },
   {
-    id: "product",
-    name: "产品驱动官网模板",
-    desc: "优先展示产品分类、型号、参数、FAQ，适合产品数量较多的企业。",
-    fit: "产品优先",
-    pages: [
-      {
-        id: "home",
-        name: "首页",
-        purpose: "首屏直接把产品能力和选型入口放在最前面。",
-        blocks: [
-          { type: "首屏产品定位", media: "图 + 文", content: "工业冷水机组及制冷恒温设备研发制造服务商，突出选型咨询。" },
-          { type: "产品矩阵", media: "图 + 文", content: "按水冷、风冷、螺杆、低温、磁悬浮、气悬浮分类展示。" },
-          { type: "参数选型入口", media: "文", content: "制冷量、温度范围、应用行业、现场条件四类信息。" },
-          { type: "热门 FAQ", media: "文", content: "现货、交期、定制、售后、认证、报价方式。" }
-        ]
-      },
-      {
-        id: "catalog",
-        name: "产品总览",
-        purpose: "集中承载所有产品条目，便于后续生成产品详情页。",
-        blocks: [
-          { type: "筛选项", media: "文", content: "产品类型、应用行业、制冷方式、温控范围。" },
-          { type: "产品卡片", media: "图 + 文", content: "产品名、用途摘要、适配行业、关键参数、详情入口。" },
-          { type: "资料下载", media: "文", content: "产品画册、参数表、选型表。" }
-        ]
-      },
-      {
-        id: "detail",
-        name: "产品详情",
-        purpose: "定义单个产品详情页的标准结构。",
-        blocks: [
-          { type: "产品概述", media: "图 + 文", content: "产品名称、适用对象、核心卖点。" },
-          { type: "参数说明", media: "文", content: "制冷量、压缩机、控温精度、冷却方式、适用行业。" },
-          { type: "应用案例", media: "文", content: "引用行业应用中的相关案例。" },
-          { type: "咨询表单", media: "文", content: "提交型号/参数/应用场景。" }
-        ]
-      },
-      {
-        id: "faq",
-        name: "FAQ",
-        purpose: "把采购前问题整理成 AI 容易引用的问答格式。",
-        blocks: [
-          { type: "采购问题", media: "文", content: "是否有现货、如何报价、交付周期、是否支持定制。" },
-          { type: "技术问题", media: "文", content: "如何选型、支持哪些行业、控温范围如何确认。" },
-          { type: "服务问题", media: "文", content: "安装调试、售后响应、质保、备件。" }
-        ]
-      }
-    ]
-  },
-  {
-    id: "solution",
-    name: "解决方案官网模板",
-    desc: "围绕行业问题组织页面，适合靠场景和方案获客的企业。",
-    fit: "场景获客",
-    pages: [
-      {
-        id: "home",
-        name: "首页",
-        purpose: "先展示行业场景和解决问题，再引导产品选型。",
-        blocks: [
-          { type: "场景首屏", media: "图 + 文", content: "面向吹塑注塑、电镀、新能源锂电池、化工反应釜等行业提供制冷恒温方案。" },
-          { type: "问题归纳", media: "文", content: "生产过程控温不稳、设备热负荷高、连续生产停机风险、节能要求。" },
-          { type: "方案路径", media: "文", content: "需求评估 → 产品选型 → 现场适配 → 安装调试 → 售后维护。" },
-          { type: "行业入口", media: "图 + 文", content: "按行业跳转到对应方案页面。" }
-        ]
-      },
-      {
-        id: "solutions",
-        name: "解决方案",
-        purpose: "每个行业方案形成独立页面，便于 GEO 问答命中。",
-        blocks: [
-          { type: "行业痛点", media: "文", content: "按行业描述温控、降温、恒温、节能等问题。" },
-          { type: "推荐配置", media: "文", content: "关联对应产品系列和参数选择逻辑。" },
-          { type: "落地效果", media: "文", content: "稳定生产、降低故障、提升控温精度、节能优化。" },
-          { type: "关联案例", media: "图 + 文", content: "展示相近行业应用案例。" }
-        ]
-      },
-      {
-        id: "cases",
-        name: "案例中心",
-        purpose: "用案例补足可信度和行业关键词。",
-        blocks: [
-          { type: "案例列表", media: "图 + 文", content: "应用于吹塑注塑、电镀阳极氧化、新能源锂电池、化工反应釜等案例。" },
-          { type: "案例详情结构", media: "文", content: "客户背景、问题、方案、产品、效果、咨询入口。" }
-        ]
-      },
-      {
-        id: "contact",
-        name: "方案咨询",
-        purpose: "把用户需求转化成可跟进线索。",
-        blocks: [
-          { type: "需求采集", media: "文", content: "行业、设备、温度、产能、现场条件、联系人。" },
-          { type: "联系方式", media: "文", content: "电话、邮箱、地址、官网、备案。" }
-        ]
-      }
-    ]
-  },
-  {
-    id: "brand",
-    name: "品牌展示官网模板",
-    desc: "适合需要强调企业实力、资质荣誉、品牌故事和媒体背书的企业。",
-    fit: "品牌背书",
-    pages: [
-      {
-        id: "home",
-        name: "首页",
-        purpose: "以品牌可信度和核心业务建立第一印象。",
-        blocks: [
-          { type: "品牌首屏", media: "图 + 文", layout: "hero", title: "可信赖的工业制冷品牌", content: "首屏突出品牌定位、制造实力和咨询入口。", image: "https://images.unsplash.com/photo-1518005020951-eccb494ad742?auto=format&fit=crop&w=900&q=80", highlights: ["品牌定位", "企业实力", "咨询入口"] },
-          { type: "实力背书", media: "文", layout: "stats", content: "展示年限、专利、认证和服务网络。", metrics: [{ value: "2007", label: "成立时间" }, { value: "58", label: "研发专利" }, { value: "ISO", label: "体系认证" }] }
-        ]
-      },
-      {
-        id: "about",
-        name: "品牌故事",
-        purpose: "讲清楚企业发展、理念和能力边界。",
-        blocks: [
-          { type: "发展历程", media: "图 + 文", layout: "split", title: "从设备制造到系统服务", content: "用时间线组织企业发展节点和关键能力。", image: "https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=820&q=80" }
-        ]
-      },
-      {
-        id: "honors",
-        name: "资质荣誉",
-        purpose: "集中展示证书、专利、认证和客户认可。",
-        blocks: [
-          { type: "荣誉墙", media: "文", layout: "stats", content: "按认证、专利、奖项分组展示。", metrics: [{ value: "CE", label: "国际认证" }, { value: "高新", label: "企业资质" }, { value: "专精", label: "特新企业" }] }
-        ]
-      }
-    ]
-  },
-  {
-    id: "content",
-    name: "内容获客官网模板",
-    desc: "适合用文章、FAQ、案例和资料下载持续获客的企业。",
-    fit: "内容增长",
-    pages: [
-      {
-        id: "home",
-        name: "首页",
-        purpose: "把产品入口、知识内容和转化表单放在同一条路径中。",
-        blocks: [
-          { type: "内容首屏", media: "图 + 文", layout: "hero", title: "让客户先获得答案，再留下需求", content: "首屏提供行业指南、产品选型、FAQ 和资料下载入口。", image: "https://images.unsplash.com/photo-1487611459768-bd414656ea10?auto=format&fit=crop&w=900&q=80", highlights: ["选型指南", "技术 FAQ", "资料下载"] }
-        ]
-      },
-      {
-        id: "blog",
-        name: "知识文章",
-        purpose: "沉淀行业教程、选型指南和技术解释。",
-        blocks: [
-          { type: "文章列表", media: "图 + 文", layout: "article-list", content: "按知识主题组织内容。", items: [
-            { title: "工业冷水机选型指南", desc: "用参数和场景解释采购决策。", image: "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=520&q=80" },
-            { title: "温控系统维护建议", desc: "减少故障停机和维护成本。", image: "https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=520&q=80" }
-          ] }
-        ]
-      },
-      {
-        id: "faq",
-        name: "FAQ",
-        purpose: "覆盖 AI 搜索高频问题。",
-        blocks: [
-          { type: "问答集合", media: "文", layout: "faq", content: "报价、交付、定制、售后、参数等高频问题。", items: [
-            { title: "报价需要哪些信息？", desc: "产品型号、行业、制冷量、温度范围和现场条件。" },
-            { title: "资料如何下载？", desc: "可按产品、行业和方案下载画册与选型表。" }
-          ] }
-        ]
-      }
-    ]
+    name: "深圳市东星制冷机电有限公司官网新版",
+    type: "企业官网",
+    status: "草稿",
+    updated: "2026-05-22",
+    pages: 5,
+    leads: 3,
+    desc: "企业官网新版草稿，正在调整首页、产品中心、案例和联系方式。"
   }
 ];
 
@@ -528,7 +195,7 @@ function icon(id, cls = "icon") {
 
 function renderTopNav() {
   const activeNavItem = navItems.find(item => item.id === state.section);
-  const primaryIds = ["geo", "knowledge", "pages"];
+  const primaryIds = ["geo", "knowledge", "site"];
   const compactIds = activeNavItem && !primaryIds.includes(activeNavItem.id)
     ? [...primaryIds.slice(0, 2), activeNavItem.id]
     : primaryIds;
@@ -550,150 +217,6 @@ function renderTopNav() {
       </div>
     </nav>
   `;
-}
-
-function renderTemplateThumb(template) {
-  const pageCount = Math.min(template.pages.length, 6);
-  const rows = Array.from({ length: pageCount }, (_, index) => `<i style="width:${index % 3 === 0 ? 74 : index % 3 === 1 ? 58 : 66}%"></i>`).join("");
-  return `<div class="template-thumb" aria-hidden="true"><b></b><span>${rows}</span></div>`;
-}
-
-function renderPreviewImage(src, alt) {
-  if (!src) return "";
-  return `<figure class="preview-image"><img src="${src}" alt="${alt}" /></figure>`;
-}
-
-function renderPreviewCards(items = []) {
-  return items.map(item => `
-    <article class="preview-card">
-      ${item.image ? `<img src="${item.image}" alt="${item.title}" />` : ""}
-      <h4>${item.title}</h4>
-      <p>${item.desc}</p>
-    </article>
-  `).join("");
-}
-
-function renderPreviewBlock(block, index) {
-  const layout = block.layout || "text";
-  const title = block.title || block.type;
-  const chips = (block.highlights || []).map(item => `<span>${item}</span>`).join("");
-  const sectionTitle = `
-    <div class="site-block-title">
-      <small>${String(index + 1).padStart(2, "0")} · ${block.media}</small>
-      <h3>${title}</h3>
-      <p>${block.content}</p>
-    </div>
-  `;
-
-  if (layout === "hero") {
-    return `
-      <article class="site-block site-hero">
-        <div>
-          ${sectionTitle}
-          ${chips ? `<div class="preview-chip-row">${chips}</div>` : ""}
-        </div>
-        ${renderPreviewImage(block.image, title)}
-      </article>
-    `;
-  }
-
-  if (layout.includes("split")) {
-    return `
-      <article class="site-block site-split ${layout.includes("reverse") ? "reverse" : ""}">
-        ${renderPreviewImage(block.image, title)}
-        ${sectionTitle}
-      </article>
-    `;
-  }
-
-  if (layout === "stats") {
-    return `
-      <article class="site-block">
-        ${sectionTitle}
-        <div class="preview-stats">
-          ${(block.metrics || []).map(metric => `<div><b>${metric.value}</b><span>${metric.label}</span></div>`).join("")}
-        </div>
-      </article>
-    `;
-  }
-
-  if (["card-grid", "media-grid"].includes(layout)) {
-    return `
-      <article class="site-block">
-        ${sectionTitle}
-        <div class="preview-card-grid ${layout === "media-grid" ? "media" : ""}">${renderPreviewCards(block.items)}</div>
-      </article>
-    `;
-  }
-
-  if (layout === "article-list") {
-    return `
-      <article class="site-block">
-        ${sectionTitle}
-        <div class="preview-article-list">${renderPreviewCards(block.items)}</div>
-      </article>
-    `;
-  }
-
-  if (layout === "faq") {
-    return `
-      <article class="site-block">
-        ${sectionTitle}
-        <div class="preview-faq">
-          ${(block.items || []).map(item => `<details open><summary>${item.title}</summary><p>${item.desc}</p></details>`).join("")}
-        </div>
-      </article>
-    `;
-  }
-
-  if (layout === "tabs" || layout === "text-columns") {
-    return `
-      <article class="site-block">
-        ${sectionTitle}
-        <div class="preview-chip-row">${chips}</div>
-      </article>
-    `;
-  }
-
-  if (layout === "steps") {
-    return `
-      <article class="site-block">
-        ${sectionTitle}
-        <div class="preview-steps">
-          ${(block.items || []).map(item => `<div><b>${item.title}</b><span>${item.desc}</span></div>`).join("")}
-        </div>
-      </article>
-    `;
-  }
-
-  if (layout === "contact") {
-    return `
-      <article class="site-block site-contact">
-        ${sectionTitle}
-        <div class="preview-contact-list">${(block.highlights || []).map(item => `<span>${item}</span>`).join("")}</div>
-      </article>
-    `;
-  }
-
-  if (layout === "form") {
-    return `
-      <article class="site-block site-form">
-        ${sectionTitle}
-        <div class="preview-form-grid"><span>姓名</span><span>电话</span><span>应用行业</span><span>产品型号</span><span>制冷需求</span><span>备注</span></div>
-      </article>
-    `;
-  }
-
-  if (layout === "cta" || layout === "quote") {
-    return `
-      <article class="site-block site-cta">
-        ${sectionTitle}
-        ${chips ? `<div class="preview-chip-row">${chips}</div>` : ""}
-      </article>
-    `;
-  }
-
-  return `<article class="site-block">${sectionTitle}</article>`;
 }
 
 function render() {
@@ -740,7 +263,6 @@ function renderAuthed() {
       <button class="logout-icon" id="logout" type="button" aria-label="退出登录">${icon("i-log-out")}</button>
     </header>
     <main class="app-main">${renderSection()}</main>
-    ${state.templateModal ? renderTemplateModal() : ""}
   `;
 }
 
@@ -749,7 +271,6 @@ function renderSection() {
     knowledge: renderKnowledgePage,
     site: renderSitePage,
     geo: renderGeoWorkbench,
-    pages: renderPagesPage,
     publish: renderPublishPage,
     analytics: renderAnalyticsPage,
     settings: renderSettingsPage
@@ -1005,38 +526,32 @@ function formFooter() {
 
 function renderSitePage() {
   return `
-    <section class="site-center">
-      <div class="site-hero">
-        <h1>生成官网</h1>
-        <p>描述需求，AI 为您生成专业企业官网</p>
-      </div>
-      <div class="prompt-card">
-        <textarea id="sitePrompt" placeholder="描述您想要的企业官网，例如：帮我生成一个制造业企业官网..."></textarea>
-        <div class="prompt-actions">
-          <div><button class="ghost slim" data-section="knowledge" type="button">企业知识库 (19)</button><button class="ghost slim selected" data-template-open type="button">工业自动化（默认）</button></div>
-          <button class="primary slim" id="generateSite" type="button">开始生成</button>
+    <section class="site-workbench">
+      <div class="site-list-head">
+        <div>
+          <span>官网资产</span>
+          <h1>我的官网 <small>(${ownedSites.length})</small></h1>
+          <p>通过卡片创建新官网，也可以进入已有官网继续修改页面、内容和发布配置。</p>
         </div>
+        <button class="ghost slim" data-section="knowledge" type="button">企业知识库 (19)</button>
       </div>
-      <p class="template-note">未手动选择时默认使用工业自动化模板</p>
-      <div class="site-list-head"><strong>我的官网 <span>(2)</span></strong><button class="ghost slim" type="button">刷新</button></div>
       <div class="site-grid">
-        ${[1,2].map(() => `<button class="site-item" data-open-editor type="button"><span>编辑中</span><h3>深圳市东星制冷机电有限公司官网</h3><p><small>2026-05-25</small><b>0</b></p></button>`).join("")}
+        ${ownedSites.map(site => `
+          <button class="site-item owned-site-card" data-open-editor type="button">
+            <div class="site-card-top"><span>${site.status}</span><small>${site.type}</small></div>
+            <h3>${site.name}</h3>
+            <p>${site.desc}</p>
+            <div class="site-card-meta"><b>${site.pages}</b><small>页面</small><b>${site.leads}</b><small>留资</small><em>${site.updated}</em></div>
+          </button>
+        `).join("")}
+        <button class="site-item site-create-card" data-create-site type="button">
+          <b>${icon("i-plus")}</b>
+          <h3>添加官网</h3>
+          <p>基于企业知识库创建一个新的企业官网。</p>
+          <span>使用当前官网结构</span>
+        </button>
       </div>
     </section>
-  `;
-}
-
-function renderTemplateModal() {
-  return `
-    <div class="modal open">
-      <div class="modal-panel template-panel" role="dialog" aria-label="选择网站模板">
-        <div class="modal-head"><div><h2>选择网站模板</h2><p>同一行业支持多套模板风格，点击模板卡片可选择，再次点击可取消选择。</p></div><button class="icon-btn" data-modal-close type="button" aria-label="Close">${icon("i-close")}</button></div>
-        <div class="template-choice-grid">
-          ${templates.map(tpl => `<div class="template-choice ${tpl.id === state.selectedTemplate ? "active" : ""}" data-template="${tpl.id}"><div class="template-shot">${tpl.name}</div><h3>${tpl.name}</h3><b>${tpl.style}</b><p>${tpl.desc}</p><div><span>产品中心</span><span>解决方案</span><span>行业应用</span><span>+4</span></div><button class="ghost slim" type="button">预览模板</button></div>`).join("")}
-        </div>
-        <div class="modal-actions"><button class="ghost slim" data-modal-close type="button">取消</button><button class="primary slim" data-modal-close type="button">确认</button></div>
-      </div>
-    </div>
   `;
 }
 
@@ -1084,78 +599,6 @@ function renderGeoWorkbench() {
   return `${pageHead("GEO 工作台", "诊断、改写、结构化、AI 可抓取效果闭环")}
     <section class="stats-grid">${stat("GEO 总评分", "82", "较上次 +13 分", "good")}${stat("AI 问答覆盖", "47 / 68", "仍缺 21 个高频问题")}${stat("结构化模块", "9", "Schema、FAQ、产品参数")}${stat("待采纳改写", "18", "涉及 6 个页面", "warn")}</section>
     <section class="grid-2"><div class="panel"><h2>页面诊断</h2>${progress("品牌实体一致性", 88, "ok")}${progress("问答式内容覆盖", 69, "mid")}${progress("结构化数据完整度", 76, "mid")}${progress("页面摘要可抓取性", 58, "bad")}</div><div class="panel"><h2>AI 改写队列</h2>${["首页首屏标题", "产品服务段落", "关于我们简介", "FAQ 模块"].map((v, i) => `<div class="queue ${i === 0 ? "selected" : ""}"><b>${v}</b><span>${i === 0 ? "补充工业视觉检测 / 自动化产线 / 数据采集实体" : "提升 AI 引用概率并补齐事实"}</span></div>`).join("")}</div></section>`;
-}
-
-function renderPagesPage() {
-  const selectedTemplate = pageTemplates.find(template => template.id === state.selectedPageTemplate) || pageTemplates[0];
-  if (!selectedTemplate.pages.some(page => page.id === state.selectedTemplatePage)) {
-    state.selectedTemplatePage = selectedTemplate.pages[0].id;
-  }
-  const selectedPage = selectedTemplate.pages.find(page => page.id === state.selectedTemplatePage) || selectedTemplate.pages[0];
-  return `
-    ${pageHead(
-      "页面模板",
-      "先确认频道页面、页面结构和企业知识库生成内容；未修改时默认使用当前结构进入生成。",
-      ""
-    )}
-    <div class="template-step-head">
-      <div>
-        <span>第一步</span>
-        <h2>选择模板</h2>
-      </div>
-    </div>
-    <section class="template-picker">
-      ${pageTemplates.map(template => `
-        <button class="template-option ${template.id === selectedTemplate.id ? "active" : ""}" data-page-template="${template.id}" type="button">
-          ${renderTemplateThumb(template)}
-          <div class="template-option-copy">
-            <em>${template.fit}</em>
-            <h3>${template.name}</h3>
-            <p>${template.desc}</p>
-            <small>${template.pages.length} 个频道页面 · ${template.pages.reduce((sum, page) => sum + page.blocks.length, 0)} 个结构模块</small>
-          </div>
-        </button>
-      `).join("")}
-    </section>
-    <div class="template-step-head workbench-step-head">
-      <div>
-        <span>第二步</span>
-        <h2>预览并生成官网</h2>
-      </div>
-      <button class="primary generate-site-btn" data-open-editor type="button">生成官网 →</button>
-    </div>
-    <section class="page-template-workbench">
-      <aside class="template-channel-list">
-        <div class="template-side-head">
-          <span>当前模板</span>
-          <strong>${selectedTemplate.name}</strong>
-        </div>
-        ${selectedTemplate.pages.map((page, index) => `
-          <button class="${page.id === selectedPage.id ? "active" : ""}" data-template-page="${page.id}" type="button">
-            <b>${String(index + 1).padStart(2, "0")}</b>
-            <span>${page.name}</span>
-            <small>${page.blocks.length} 个结构模块</small>
-          </button>
-        `).join("")}
-      </aside>
-      <section class="structure-preview">
-        <div class="structure-head">
-          <div>
-            <span>网站结构预览</span>
-            <h2>${selectedPage.name}</h2>
-            <p>${selectedPage.purpose}</p>
-          </div>
-          <div class="structure-status">
-            <b>内容来源</b>
-            <span>企业知识库 / 产品信息 / 行业案例 / 荣誉资质</span>
-          </div>
-        </div>
-        <div class="site-preview-page">
-          ${selectedPage.blocks.map(renderPreviewBlock).join("")}
-        </div>
-      </section>
-    </section>
-  `;
 }
 
 function renderPublishPage() {
@@ -1249,111 +692,173 @@ function renderMeterRow(label, value, tone = "") {
   return `<div class="meter-row"><span>${label}</span><div class="bar"><i class="${tone}" style="width:${value}%"></i></div><b>${value}%</b></div>`;
 }
 
+function miniTrend(tone = "up") {
+  const heights = tone === "down" ? [70, 62, 54, 42] : tone === "flat" ? [48, 52, 50, 54] : [34, 48, 62, 78];
+  return `<span class="mini-trend ${tone}" aria-label="${tone === "down" ? "下降趋势" : tone === "flat" ? "平稳趋势" : "上升趋势"}">${heights.map(height => `<i style="height:${height}%"></i>`).join("")}</span>`;
+}
+
 function renderAnalyticsPage() {
-  return `${pageHead("数据分析", "把访问表现、AI 搜索可见度和传统 SEO 问题统一落到页面优化动作。", `<div class="head-actions"><button class="ghost slim" type="button">近 30 天</button><button class="ghost slim" type="button">导出报告</button><button class="primary slim" type="button">生成优化建议</button></div>`)}
-    <section class="analytics-tabs" aria-label="分析类型">
-      ${["总览", "访问分析", "GEO 分析", "SEO 分析", "优化队列"].map((label, index) => `<button class="${index === 0 ? "active" : ""}" type="button">${label}</button>`).join("")}
+  const tabs = [
+    { id: "traffic", label: "访问统计" },
+    { id: "geo", label: "GEO 统计" },
+    { id: "seo", label: "SEO 统计" }
+  ];
+  const activeTab = tabs.some(tab => tab.id === state.analyticsTab) ? state.analyticsTab : "traffic";
+  return `<section class="analytics-page">
+    <nav class="analytics-tabs compact" aria-label="数据分析二级导航">
+      ${tabs.map(tab => `<button class="${activeTab === tab.id ? "active" : ""}" data-analytics-tab="${tab.id}" type="button">${tab.label}</button>`).join("")}
+    </nav>
+    ${activeTab === "geo" ? renderAnalyticsGeoStats() : activeTab === "seo" ? renderAnalyticsSeoStats() : renderAnalyticsTrafficStats()}
+  </section>`;
+}
+
+function renderAnalyticsTrafficStats() {
+  return `
+    <section class="analytics-filter-panel">
+      <div class="analytics-time-group">
+        <span>统计时间</span>
+        <button class="active" type="button">近 7 天</button>
+        <button type="button">近 30 天</button>
+        <button type="button">自定义</button>
+        <label><input type="date" value="2026-05-21" /> 至 <input type="date" value="2026-05-27" /></label>
+      </div>
+      <div class="analytics-time-group compact">
+        <span>统计粒度</span>
+        <button class="active" type="button">按日</button>
+        <button type="button">按周</button>
+        <button type="button">按月</button>
+      </div>
     </section>
 
-    <section class="analytics-kpi-grid">
-      <article class="analytics-kpi good"><span>PV / UV</span><strong>12,480 / 4,862</strong><small>PV 环比 +18%，UV 环比 +11%</small></article>
-      <article class="analytics-kpi"><span>询盘转化率</span><strong>3.6%</strong><small>42 条表单，18 次电话点击</small></article>
-      <article class="analytics-kpi good"><span>AI 提及率</span><strong>41%</strong><small>68 个问题中 28 个提及品牌</small></article>
-      <article class="analytics-kpi warn"><span>SEO 健康度</span><strong>78</strong><small>13 个页面存在标题或收录问题</small></article>
-      <article class="analytics-kpi risk"><span>待处理优化</span><strong>18</strong><small>高优先级 5 项，集中在产品页</small></article>
+    <section class="analytics-kpi-grid four">
+      <article class="analytics-kpi good"><div class="analytics-kpi-head"><span>PV</span>${miniTrend("up")}</div><strong>12,480</strong><small>近 7 天页面浏览量，环比 +18%</small></article>
+      <article class="analytics-kpi good"><div class="analytics-kpi-head"><span>UV</span>${miniTrend("up")}</div><strong>4,862</strong><small>近 7 天独立访客，环比 +11%</small></article>
+      <article class="analytics-kpi warn"><div class="analytics-kpi-head"><span>访问次数</span>${miniTrend("flat")}</div><strong>6,438</strong><small>平均每人 1.32 次访问</small></article>
+      <article class="analytics-kpi risk"><div class="analytics-kpi-head"><span>跳出率</span>${miniTrend("down")}</div><strong>48%</strong><small>产品页偏高，需要关注</small></article>
     </section>
 
-    <section class="analytics-overview-grid">
+    <section class="analytics-overview-grid traffic">
       <article class="panel analytics-trend-panel">
         <div class="analytics-panel-head">
-          <div><span>传统网站分析</span><h2>访问与转化趋势</h2></div>
-          <div class="analytics-segmented"><button class="active" type="button">PV</button><button type="button">UV</button><button type="button">转化</button></div>
+          <div><span>访问趋势</span><h2>PV / UV 日趋势</h2></div>
+          ${miniTrend("up")}
         </div>
         <div class="analytics-line-chart">
-          <svg viewBox="0 0 620 220" role="img" aria-label="近 30 天访问趋势">
+          <svg viewBox="0 0 620 220" role="img" aria-label="近 7 天访问趋势">
             <path class="grid-line" d="M0 42H620M0 96H620M0 150H620M0 204H620" />
             <path class="area" d="M0 174C42 154 62 160 98 136C137 110 162 128 200 104C240 80 275 94 310 74C350 50 386 74 424 58C462 42 500 62 536 44C574 26 594 34 620 20V220H0Z" />
             <path class="pv" d="M0 174C42 154 62 160 98 136C137 110 162 128 200 104C240 80 275 94 310 74C350 50 386 74 424 58C462 42 500 62 536 44C574 26 594 34 620 20" />
             <path class="uv" d="M0 190C52 178 74 184 116 164C158 146 184 154 222 136C262 114 296 130 334 108C374 88 410 104 452 88C498 70 530 82 568 62C594 48 608 50 620 42" />
           </svg>
         </div>
-        <div class="analytics-source-row">
-          <div><b>42%</b><span>自然搜索</span></div>
-          <div><b>21%</b><span>AI 推荐</span></div>
-          <div><b>19%</b><span>直接访问</span></div>
-          <div><b>18%</b><span>外链 / 私域</span></div>
-        </div>
       </article>
 
-      <article class="panel analytics-geo-card">
+      <article class="panel analytics-source-panel">
         <div class="analytics-panel-head">
-          <div><span>GEO 分析</span><h2>AI 可见度</h2></div>
-          <b class="analytics-score good">82 分</b>
+          <div><span>访问来源</span><h2>基础来源分布</h2></div>
+          ${miniTrend("flat")}
         </div>
-        <div class="analytics-geo-score">
-          <div class="analytics-meter" style="--value: 295deg"><strong>41%</strong><span>提及率</span></div>
-          <div class="analytics-metric-list">
-            <div><span>可抓取页面</span><b>32 / 36</b></div>
-            <div><span>AI Bot 抓取</span><b>186 次</b></div>
-            <div><span>平均推荐位</span><b>第 3.8 位</b></div>
-            <div><span>答案准确率</span><b>76%</b></div>
-          </div>
-        </div>
-        <div class="analytics-bot-row"><span>GPTBot 62</span><span>ClaudeBot 38</span><span>Perplexity 29</span><span>Google 57</span></div>
-      </article>
-
-      <article class="panel analytics-seo-card">
-        <div class="analytics-panel-head">
-          <div><span>SEO 分析</span><h2>收录与排名</h2></div>
-          <b class="analytics-score warn">78 分</b>
-        </div>
-        <div class="analytics-seo-stack">
-          <div class="analytics-seo-bar"><div><span>已收录页面</span><b>24 / 36</b></div><i style="width: 67%"></i></div>
-          <div class="analytics-keyword-row"><span>品牌词</span><b>Top 1</b><em>稳定</em></div>
-          <div class="analytics-keyword-row"><span>产品词</span><b>Top 12</b><em>可提升</em></div>
-          <div class="analytics-keyword-row"><span>行业问题词</span><b>Top 28</b><em>缺内容</em></div>
+        <div class="analytics-source-list">
+          <div><b>搜索引擎</b><span>百度、Google、360、Bing</span><i style="width: 68%"></i><strong>42%</strong></div>
+          <div><b>直接访问</b><span>输入网址、收藏夹</span><i style="width: 31%"></i><strong>19%</strong></div>
+          <div><b>AI 推荐</b><span>AI 问答跳转或引用链接</span><i style="width: 34%"></i><strong>21%</strong></div>
+          <div><b>外链 / 私域</b><span>公众号、名片、朋友圈、合作站</span><i style="width: 28%"></i><strong>18%</strong></div>
         </div>
       </article>
     </section>
 
+    <section class="panel analytics-table-panel">
+      <div class="analytics-panel-head">
+        <div><span>页面维度</span><h2>访问页面统计</h2></div>
+        <div class="analytics-period-note">当前周期：2026-05-21 至 2026-05-27 · 按日统计</div>
+      </div>
+      <table class="analytics-table">
+        <thead><tr><th>页面</th><th>统计周期</th><th>PV</th><th>UV</th><th>日均 PV</th><th>平均停留</th><th>跳出率</th><th>转化</th><th>7日趋势</th></tr></thead>
+        <tbody>
+          <tr><td><b>首页</b><span>/</span></td><td>近 7 天</td><td>5,820</td><td>2,416</td><td>831</td><td>1分42秒</td><td>42%</td><td>18</td><td>${miniTrend("up")}</td></tr>
+          <tr><td><b>产品服务</b><span>/products</span></td><td>近 7 天</td><td>2,430</td><td>1,106</td><td>347</td><td>1分08秒</td><td>61%</td><td>9</td><td>${miniTrend("down")}</td></tr>
+          <tr><td><b>解决方案</b><span>/solutions</span></td><td>近 7 天</td><td>1,108</td><td>624</td><td>158</td><td>1分21秒</td><td>56%</td><td>6</td><td>${miniTrend("flat")}</td></tr>
+          <tr><td><b>联系我们</b><span>/contact</span></td><td>近 7 天</td><td>618</td><td>402</td><td>88</td><td>42秒</td><td>37%</td><td>42</td><td>${miniTrend("up")}</td></tr>
+        </tbody>
+      </table>
+    </section>`;
+}
+
+function renderAnalyticsGeoStats() {
+  return `
+    <section class="analytics-note">
+      <b>G</b>
+      <span>先把 GEO 统计做成“页面评分”：AI 是否真实引用、提及某个页面不一定稳定可抓，当前优先展示每个页面的 GEO 优化分数和改进项。</span>
+    </section>
+    <section class="analytics-kpi-grid four">
+      <article class="analytics-kpi good"><div class="analytics-kpi-head"><span>GEO 总分</span>${miniTrend("up")}</div><strong>82</strong><small>全站页面平均分</small></article>
+      <article class="analytics-kpi"><div class="analytics-kpi-head"><span>已评分页面</span>${miniTrend("flat")}</div><strong>32 / 36</strong><small>还有 4 个页面待扫描</small></article>
+      <article class="analytics-kpi warn"><div class="analytics-kpi-head"><span>低分页面</span>${miniTrend("down")}</div><strong>6</strong><small>低于 70 分，优先处理</small></article>
+      <article class="analytics-kpi"><div class="analytics-kpi-head"><span>AI Bot 抓取</span>${miniTrend("up")}</div><strong>186</strong><small>作为辅助观察指标</small></article>
+    </section>
     <section class="analytics-detail-grid">
-      <article class="panel analytics-table-panel">
-        <div class="analytics-panel-head">
-          <div><span>页面维度</span><h2>页面表现排行</h2></div>
-          <button class="ghost slim" type="button">查看全部</button>
+      <article class="panel">
+        <div class="analytics-panel-head"><div><span>评分模型</span><h2>GEO 页面评分规则</h2></div>${miniTrend("up")}</div>
+        <div class="analytics-geo-score large">
+          <div class="analytics-meter" style="--value: 302deg"><strong>84</strong><span>产品页 GEO 分</span></div>
+          <div class="analytics-metric-list score-rules">
+            <div><span>可抓取性 25%</span><b>22</b><em style="width:88%"></em></div>
+            <div><span>问答覆盖 25%</span><b>18</b><em style="width:72%"></em></div>
+            <div><span>品牌实体 20%</span><b>17</b><em style="width:85%"></em></div>
+            <div><span>结构化内容 20%</span><b>14</b><em style="width:70%"></em></div>
+            <div><span>可信证据 10%</span><b>7</b><em style="width:66%"></em></div>
+          </div>
         </div>
+      </article>
+      <article class="panel analytics-table-panel">
+        <div class="analytics-panel-head"><div><span>页面排行</span><h2>GEO 分数分布</h2></div>${miniTrend("flat")}</div>
         <table class="analytics-table">
-          <thead><tr><th>页面</th><th>PV</th><th>跳出率</th><th>转化</th><th>GEO</th><th>SEO</th></tr></thead>
+          <thead><tr><th>页面</th><th>分数</th><th>主要短板</th><th>趋势</th></tr></thead>
           <tbody>
-            <tr><td><b>首页</b><span>/</span></td><td>5,820</td><td>42%</td><td>18</td><td><em class="ok">92</em></td><td><em class="ok">86</em></td></tr>
-            <tr><td><b>产品服务</b><span>/products</span></td><td>2,430</td><td>61%</td><td>9</td><td><em class="warn">74</em></td><td><em class="warn">71</em></td></tr>
-            <tr><td><b>解决方案</b><span>/solutions</span></td><td>1,108</td><td>56%</td><td>6</td><td><em class="warn">66</em></td><td><em class="ok">82</em></td></tr>
-            <tr><td><b>FAQ</b><span>未发布</span></td><td>-</td><td>-</td><td>-</td><td><em class="risk">38</em></td><td><em class="risk">0</em></td></tr>
+            <tr><td><b>首页</b><span>/</span></td><td><em class="ok">92</em></td><td>可继续补案例摘要</td><td>${miniTrend("up")}</td></tr>
+            <tr><td><b>产品服务</b><span>/products</span></td><td><em class="warn">74</em></td><td>缺参数和 FAQ</td><td>${miniTrend("flat")}</td></tr>
+            <tr><td><b>解决方案</b><span>/solutions</span></td><td><em class="warn">66</em></td><td>场景问题覆盖不足</td><td>${miniTrend("down")}</td></tr>
+            <tr><td><b>FAQ</b><span>未发布</span></td><td><em class="risk">38</em></td><td>需要创建页面</td><td>${miniTrend("flat")}</td></tr>
           </tbody>
         </table>
       </article>
+    </section>`;
+}
 
-      <article class="panel analytics-question-panel">
-        <div class="analytics-panel-head">
-          <div><span>AI 问题覆盖</span><h2>GEO 机会问题</h2></div>
-          <button class="primary slim" type="button">生成 FAQ</button>
+function renderAnalyticsSeoStats() {
+  return `
+    <section class="analytics-kpi-grid four">
+      <article class="analytics-kpi good"><div class="analytics-kpi-head"><span>搜索展现</span>${miniTrend("up")}</div><strong>18,620</strong><small>来自搜索结果页曝光</small></article>
+      <article class="analytics-kpi good"><div class="analytics-kpi-head"><span>搜索点击</span>${miniTrend("up")}</div><strong>932</strong><small>自然搜索点击量</small></article>
+      <article class="analytics-kpi warn"><div class="analytics-kpi-head"><span>CTR</span>${miniTrend("down")}</div><strong>5.0%</strong><small>点击率，标题可优化</small></article>
+      <article class="analytics-kpi"><div class="analytics-kpi-head"><span>平均排名</span>${miniTrend("up")}</div><strong>12.4</strong><small>产品词仍在第二页附近</small></article>
+    </section>
+    <section class="analytics-detail-grid">
+      <article class="panel">
+        <div class="analytics-panel-head"><div><span>搜索表现</span><h2>关键词基础统计</h2></div>${miniTrend("up")}</div>
+        <div class="analytics-keyword-list">
+          <div><b>工业视觉检测系统</b><span>产品词</span><strong>3,420</strong><em>展现</em><strong>Top 12</strong></div>
+          <div><b>自动化产线改造</b><span>方案词</span><strong>2,186</strong><em>展现</em><strong>Top 18</strong></div>
+          <div><b>设备数据采集网关</b><span>产品词</span><strong>1,642</strong><em>展现</em><strong>Top 9</strong></div>
+          <div><b>智能制造解决方案</b><span>行业词</span><strong>1,208</strong><em>展现</em><strong>Top 24</strong></div>
         </div>
-        <div class="analytics-question high"><b>工业视觉检测系统哪家公司好？</b><span>已提及，第 4 位；竞品出现 3 次，缺案例证明。</span></div>
-        <div class="analytics-question"><b>自动化产线改造周期多久？</b><span>未覆盖；建议新增“交付周期 / 实施流程”问答。</span></div>
-        <div class="analytics-question"><b>设备数据采集网关支持哪些 PLC？</b><span>提及不完整；产品页缺品牌型号与协议清单。</span></div>
-        <div class="analytics-question low"><b>智能制造系统怎么选型？</b><span>有曝光无品牌；建议补行业方案页摘要。</span></div>
+      </article>
+      <article class="panel">
+        <div class="analytics-panel-head"><div><span>收录情况</span><h2>页面收录统计</h2></div>${miniTrend("flat")}</div>
+        <div class="analytics-source-list">
+          <div><b>已收录页面</b><span>搜索引擎可展示的页面</span><i style="width: 67%"></i><strong>24 / 36</strong></div>
+          <div><b>Sitemap 提交</b><span>sitemap.xml 正常生成</span><i style="width: 100%"></i><strong>正常</strong></div>
+          <div><b>robots.txt</b><span>未阻止核心页面抓取</span><i style="width: 100%"></i><strong>正常</strong></div>
+          <div><b>未收录重点页</b><span>产品服务、案例、FAQ 需关注</span><i style="width: 36%"></i><strong>3</strong></div>
+        </div>
       </article>
     </section>
-
     <section class="panel analytics-action-panel">
-      <div class="analytics-panel-head">
-        <div><span>统一输出</span><h2>优化建议队列</h2></div>
-        <button class="ghost slim" type="button">按优先级排序</button>
-      </div>
+      <div class="analytics-panel-head"><div><span>SEO 问题</span><h2>基础页面健康检查</h2></div>${miniTrend("down")}</div>
       <div class="analytics-action-list">
-        <div class="analytics-action-row urgent"><span class="analytics-tag">GEO</span><b>为产品服务页补充 PLC 支持型号、协议清单和可引用摘要</b><small>影响：AI 问答覆盖、产品页跳出率、产品词排名</small><button type="button">处理</button></div>
-        <div class="analytics-action-row"><span class="analytics-tag seo">SEO</span><b>修复 8 个页面的重复 Title，并补充 Description</b><small>影响：搜索点击率、收录质量、页面健康度</small><button type="button">处理</button></div>
-        <div class="analytics-action-row"><span class="analytics-tag visit">访问</span><b>在首页首屏增加行业入口和询盘按钮，降低高流量页面流失</b><small>影响：首页转化、访问路径、表单提交</small><button type="button">处理</button></div>
+        <div class="analytics-action-row"><span class="analytics-tag seo">SEO</span><b>8 个页面 Title 重复</b><small>影响搜索结果识别，建议按页面主题生成唯一标题。</small><button type="button">处理</button></div>
+        <div class="analytics-action-row"><span class="analytics-tag seo">SEO</span><b>11 张图片缺少 alt</b><small>影响图片理解和页面语义，建议自动补充产品或场景描述。</small><button type="button">处理</button></div>
+        <div class="analytics-action-row"><span class="analytics-tag seo">SEO</span><b>FAQ 页面未发布</b><small>影响长尾问题词覆盖，也会影响 GEO 问答覆盖。</small><button type="button">处理</button></div>
       </div>
     </section>`;
 }
@@ -1393,25 +898,16 @@ function bindEvents() {
   });
   $("[data-url-helper]")?.addEventListener("click", () => { state.urlHelper = true; render(); });
   $("[data-url-cancel]")?.addEventListener("click", () => { state.urlHelper = false; render(); });
-  $("[data-template-open]")?.addEventListener("click", () => { state.templateModal = true; render(); });
-  $$("[data-modal-close]").forEach(btn => btn.addEventListener("click", () => { state.templateModal = false; render(); }));
-  $$("[data-template]").forEach(card => card.addEventListener("click", () => { state.selectedTemplate = card.dataset.template; render(); }));
-  $$("[data-page-template]").forEach(card => card.addEventListener("click", () => {
-    state.selectedPageTemplate = card.dataset.pageTemplate;
-    const template = pageTemplates.find(item => item.id === state.selectedPageTemplate);
-    state.selectedTemplatePage = template?.pages[0]?.id || "home";
+  $("[data-create-site]")?.addEventListener("click", () => {
+    state.section = "editor";
     render();
-  }));
-  $$("[data-template-page]").forEach(btn => btn.addEventListener("click", () => {
-    state.selectedTemplatePage = btn.dataset.templatePage;
-    render();
-  }));
-  $$("[data-confirm-template]").forEach(btn => btn.addEventListener("click", () => {
-    state.section = "geo";
-    render();
-  }));
+  });
   $$("[data-publish-step]").forEach(btn => btn.addEventListener("click", () => {
     state.selectedPublishStep = Number(btn.dataset.publishStep);
+    render();
+  }));
+  $$("[data-analytics-tab]").forEach(btn => btn.addEventListener("click", () => {
+    state.analyticsTab = btn.dataset.analyticsTab;
     render();
   }));
   $$("[data-open-editor]").forEach(card => card.addEventListener("click", () => { state.section = "editor"; render(); }));
