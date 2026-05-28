@@ -1,0 +1,1212 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>访问统计四个子页面对标研究报告</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --panel: #ffffff;
+      --text: #121826;
+      --muted: #667085;
+      --soft: #eef3fb;
+      --line: #dce4f0;
+      --blue: #2563eb;
+      --cyan: #0891b2;
+      --green: #059669;
+      --orange: #d97706;
+      --red: #dc2626;
+      --purple: #7c3aed;
+      --shadow: 0 14px 40px rgba(15, 23, 42, .08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 12% 10%, rgba(37, 99, 235, .08), transparent 32%),
+        radial-gradient(circle at 88% 6%, rgba(8, 145, 178, .08), transparent 26%),
+        var(--bg);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      line-height: 1.6;
+    }
+
+    a {
+      color: var(--blue);
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    .page {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 32px 22px 56px;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(320px, .8fr);
+      gap: 24px;
+      align-items: stretch;
+      margin-bottom: 22px;
+    }
+
+    .hero-main,
+    .hero-side,
+    .section,
+    .card,
+    .diagram-card {
+      background: rgba(255, 255, 255, .92);
+      border: 1px solid rgba(220, 228, 240, .88);
+      box-shadow: var(--shadow);
+    }
+
+    .hero-main {
+      border-radius: 22px;
+      padding: 34px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 28px;
+      padding: 0 11px;
+      color: var(--blue);
+      background: #eaf1ff;
+      border: 1px solid #c7d7fe;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin-top: 0;
+    }
+
+    h1 {
+      margin: 16px 0 14px;
+      font-size: clamp(30px, 5vw, 52px);
+      line-height: 1.08;
+      letter-spacing: 0;
+    }
+
+    h2 {
+      margin-bottom: 14px;
+      font-size: 24px;
+      line-height: 1.28;
+    }
+
+    h3 {
+      margin-bottom: 10px;
+      font-size: 18px;
+      line-height: 1.35;
+    }
+
+    .lead {
+      max-width: 760px;
+      color: #475467;
+      font-size: 17px;
+    }
+
+    .meta-row,
+    .chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 22px;
+    }
+
+    .meta,
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      min-height: 34px;
+      padding: 0 12px;
+      color: #344054;
+      background: #f7f9fc;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 650;
+    }
+
+    .hero-side {
+      display: grid;
+      gap: 14px;
+      border-radius: 22px;
+      padding: 20px;
+    }
+
+    .hero-metric {
+      padding: 16px;
+      background: #f8fbff;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+    }
+
+    .hero-metric strong {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 24px;
+      line-height: 1;
+    }
+
+    .hero-metric span {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .notice {
+      padding: 16px 18px;
+      margin-bottom: 22px;
+      color: #344054;
+      background: #fff7ed;
+      border: 1px solid #fed7aa;
+      border-radius: 16px;
+    }
+
+    .section {
+      margin-top: 22px;
+      padding: 24px;
+      border-radius: 20px;
+    }
+
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: flex-start;
+      margin-bottom: 18px;
+    }
+
+    .section-head p {
+      max-width: 780px;
+      margin-bottom: 0;
+      color: var(--muted);
+    }
+
+    .grid {
+      display: grid;
+      gap: 16px;
+    }
+
+    .grid.two {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .grid.three {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .grid.four {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .card,
+    .diagram-card {
+      border-radius: 16px;
+      padding: 18px;
+    }
+
+    .card h3 {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .rank {
+      display: inline-grid;
+      place-items: center;
+      width: 28px;
+      height: 28px;
+      color: #fff;
+      background: var(--blue);
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .card p,
+    .card li {
+      color: #536179;
+      font-size: 14px;
+    }
+
+    ul {
+      padding-left: 18px;
+      margin: 10px 0 0;
+    }
+
+    li + li {
+      margin-top: 6px;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #fff;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 880px;
+      font-size: 14px;
+    }
+
+    th,
+    td {
+      padding: 13px 14px;
+      text-align: left;
+      vertical-align: top;
+      border-bottom: 1px solid var(--line);
+    }
+
+    th {
+      color: #344054;
+      background: #f3f6fb;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    td strong {
+      color: #111827;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      padding: 0 9px;
+      margin: 2px 4px 2px 0;
+      color: #344054;
+      background: #eef3fb;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .tag.blue {
+      color: #1d4ed8;
+      background: #dbeafe;
+    }
+
+    .tag.green {
+      color: #047857;
+      background: #d1fae5;
+    }
+
+    .tag.orange {
+      color: #b45309;
+      background: #ffedd5;
+    }
+
+    .tag.purple {
+      color: #6d28d9;
+      background: #ede9fe;
+    }
+
+    .quote {
+      padding: 14px 16px;
+      color: #344054;
+      background: #f8fafc;
+      border-left: 4px solid var(--blue);
+      border-radius: 12px;
+      font-size: 14px;
+    }
+
+    .module-layout {
+      display: grid;
+      grid-template-columns: minmax(0, .95fr) minmax(360px, 1.05fr);
+      gap: 18px;
+      align-items: stretch;
+    }
+
+    .module-copy {
+      display: grid;
+      gap: 14px;
+    }
+
+    .subcard {
+      padding: 15px;
+      background: #f8fafc;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+    }
+
+    .subcard h4 {
+      margin: 0 0 8px;
+      font-size: 15px;
+    }
+
+    .subcard p {
+      margin-bottom: 0;
+      color: #5b667a;
+      font-size: 14px;
+    }
+
+    .diagram-card {
+      overflow: hidden;
+      background: #ffffff;
+    }
+
+    .diagram-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
+    .diagram-title {
+      font-weight: 800;
+    }
+
+    .diagram-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 30px;
+      padding: 0 10px;
+      color: #475467;
+      background: #f8fafc;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .btn.active {
+      color: #1d4ed8;
+      background: #eaf1ff;
+      border-color: #b8caff;
+    }
+
+    .chart {
+      position: relative;
+      height: 260px;
+      padding: 20px 24px 34px 42px;
+      background:
+        linear-gradient(to bottom, transparent 19%, #e8eef7 20%, transparent 21%),
+        linear-gradient(to bottom, transparent 39%, #e8eef7 40%, transparent 41%),
+        linear-gradient(to bottom, transparent 59%, #e8eef7 60%, transparent 61%),
+        linear-gradient(to bottom, transparent 79%, #e8eef7 80%, transparent 81%),
+        #fbfdff;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+    }
+
+    .axis-y {
+      position: absolute;
+      left: 10px;
+      top: 18px;
+      bottom: 28px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      color: #98a2b3;
+      font-size: 11px;
+    }
+
+    .axis-x {
+      position: absolute;
+      left: 46px;
+      right: 20px;
+      bottom: 9px;
+      display: flex;
+      justify-content: space-between;
+      color: #98a2b3;
+      font-size: 11px;
+    }
+
+    .line {
+      position: absolute;
+      left: 42px;
+      right: 24px;
+      bottom: 34px;
+      height: 188px;
+      clip-path: polygon(0 76%, 10% 65%, 20% 68%, 30% 48%, 42% 50%, 52% 32%, 64% 38%, 76% 22%, 88% 25%, 100% 12%, 100% 100%, 0 100%);
+      background: linear-gradient(180deg, rgba(37, 99, 235, .24), rgba(37, 99, 235, .03));
+      border-bottom-left-radius: 8px;
+      border-bottom-right-radius: 8px;
+    }
+
+    .line::before,
+    .line::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: none;
+      border-top: 4px solid var(--blue);
+      border-radius: 50% 50% 0 0;
+      transform: skewY(-11deg) translateY(44px);
+    }
+
+    .line::after {
+      border-color: var(--cyan);
+      opacity: .72;
+      transform: skewY(-8deg) translateY(78px);
+    }
+
+    .tooltip {
+      position: absolute;
+      right: 58px;
+      top: 42px;
+      width: 166px;
+      padding: 11px 12px;
+      background: #111827;
+      color: #fff;
+      border-radius: 12px;
+      box-shadow: 0 16px 36px rgba(17, 24, 39, .22);
+      font-size: 12px;
+    }
+
+    .tooltip div {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 6px;
+      color: #dbe4f0;
+    }
+
+    .legend {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+      color: #536179;
+      font-size: 13px;
+    }
+
+    .legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      background: var(--blue);
+      border-radius: 50%;
+    }
+
+    .dot.cyan {
+      background: var(--cyan);
+    }
+
+    .bars {
+      display: grid;
+      gap: 12px;
+      padding: 14px;
+      background: #fbfdff;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+    }
+
+    .bar-row {
+      display: grid;
+      grid-template-columns: 92px 1fr 58px;
+      gap: 12px;
+      align-items: center;
+      color: #475467;
+      font-size: 13px;
+    }
+
+    .bar-track {
+      height: 10px;
+      overflow: hidden;
+      background: #e9eef7;
+      border-radius: 999px;
+    }
+
+    .bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--blue), var(--cyan));
+      border-radius: inherit;
+    }
+
+    .mini-table {
+      margin-top: 14px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+
+    .mini-row {
+      display: grid;
+      grid-template-columns: minmax(120px, 1fr) 72px 72px 80px;
+      gap: 10px;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+      font-size: 13px;
+    }
+
+    .mini-row.head {
+      color: #667085;
+      background: #f3f6fb;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .mini-row:last-child {
+      border-bottom: 0;
+    }
+
+    .path-card {
+      display: grid;
+      grid-template-columns: 1fr 38px 1fr;
+      gap: 12px;
+      align-items: center;
+      padding: 14px;
+      background: #fbfdff;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+    }
+
+    .path-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .path-item {
+      padding: 10px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      font-size: 13px;
+    }
+
+    .arrow {
+      display: grid;
+      place-items: center;
+      height: 38px;
+      color: var(--blue);
+      background: #eaf1ff;
+      border-radius: 999px;
+      font-weight: 900;
+    }
+
+    .visitor-panel {
+      display: grid;
+      grid-template-columns: .9fr 1.1fr;
+      gap: 12px;
+    }
+
+    .map {
+      min-height: 220px;
+      background:
+        radial-gradient(circle at 62% 38%, rgba(37, 99, 235, .32) 0 9px, transparent 10px),
+        radial-gradient(circle at 48% 52%, rgba(8, 145, 178, .26) 0 12px, transparent 13px),
+        radial-gradient(circle at 72% 58%, rgba(5, 150, 105, .24) 0 8px, transparent 9px),
+        linear-gradient(135deg, #f8fbff, #eef6ff);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      position: relative;
+    }
+
+    .map::after {
+      content: "地域 / 设备 / 新老访客";
+      position: absolute;
+      left: 14px;
+      bottom: 14px;
+      color: #475467;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .timeline {
+      display: grid;
+      gap: 10px;
+    }
+
+    .visit {
+      padding: 12px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+    }
+
+    .visit strong {
+      display: block;
+      margin-bottom: 3px;
+      font-size: 14px;
+    }
+
+    .visit span {
+      color: #667085;
+      font-size: 12px;
+    }
+
+    .priority {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 44px;
+      height: 28px;
+      color: #fff;
+      background: #111827;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .source-list {
+      display: grid;
+      gap: 8px;
+      font-size: 14px;
+    }
+
+    .source-list a {
+      word-break: break-all;
+    }
+
+    footer {
+      margin-top: 28px;
+      color: #667085;
+      font-size: 13px;
+      text-align: center;
+    }
+
+    @media (max-width: 980px) {
+      .hero,
+      .module-layout,
+      .grid.two,
+      .grid.three,
+      .grid.four,
+      .visitor-panel {
+        grid-template-columns: 1fr;
+      }
+
+      .section-head {
+        display: block;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .page {
+        padding: 18px 12px 38px;
+      }
+
+      .hero-main,
+      .section {
+        padding: 18px;
+        border-radius: 16px;
+      }
+
+      .hero-side {
+        border-radius: 16px;
+      }
+
+      .diagram-head {
+        display: block;
+      }
+
+      .diagram-actions {
+        margin-top: 10px;
+      }
+
+      .mini-row {
+        grid-template-columns: 1fr 54px 54px 62px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="hero">
+      <div class="hero-main">
+        <span class="eyebrow">站点统计产品对标研究</span>
+        <h1>访问统计四个子页面怎么做</h1>
+        <p class="lead">本报告聚焦趋势分析、来源分析、页面分析、访客分析四个三级页面。对标对象选择国内 3 家与国外 3 家主流站点统计产品，整理它们的模块、交互、视觉方式与可借鉴点，最后给出我们自己的页面取舍建议。</p>
+        <div class="meta-row">
+          <span class="meta">报告日期：2026-05-28</span>
+          <span class="meta">研究对象：百度统计 / 友盟+ U-Web(CNZZ) / 51.LA / GA4 / Matomo / Plausible</span>
+          <span class="meta">输出用途：指导 GEO Studio 访问统计三级页面设计</span>
+        </div>
+      </div>
+      <aside class="hero-side">
+        <div class="hero-metric">
+          <strong>4 个页面</strong>
+          <span>趋势、来源、页面、访客</span>
+        </div>
+        <div class="hero-metric">
+          <strong>6 个产品</strong>
+          <span>国内 3 家 + 国外 3 家</span>
+        </div>
+        <div class="hero-metric">
+          <strong>3 层结论</strong>
+          <span>模块清单、交互视觉、我们采用方案</span>
+        </div>
+      </aside>
+    </section>
+
+    <div class="notice">
+      <strong>口径说明：</strong>这里的 Top 3 是按“站点统计场景适配度、国内外主流认知、公开 demo/文档可验证性”筛选的对标名单，不把它表述为严格市场份额排名。国内的神策、GrowingIO 更偏产品行为分析与增长分析，Similarweb 更偏外部竞品流量估算，因此本次没有放进核心站点统计 Top 3。
+    </div>
+
+    <section class="section">
+      <div class="section-head">
+        <div>
+          <h2>一、对标产品 Top 3</h2>
+          <p>国内选择偏传统站长统计与网站流量统计的产品；国外选择覆盖“标准分析、可私有化、轻量隐私友好”三种典型路线的产品。</p>
+        </div>
+      </div>
+      <div class="grid two">
+        <div class="card">
+          <h3>国内 Top 3</h3>
+          <ul>
+            <li><strong>百度统计：</strong>传统中文站点统计的完整样板，趋势、来源、受访页面、入口页面、地域、新老访客等层级清楚，适合直接对标基础运营视角。</li>
+            <li><strong>友盟+ U-Web / CNZZ：</strong>站长统计老牌体系，强调网站被访问情况、来源、页面浏览、访客地区等基础能力，适合参考紧凑型运营报表。</li>
+            <li><strong>51.LA：</strong>面向站长和中小网站，强调实时访客、蜘蛛爬虫、页面阅读深度、热力图等轻量实用能力，适合参考简单直接的监控体验。</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>国外 Top 3</h3>
+          <ul>
+            <li><strong>Google Analytics 4：</strong>事件化与转化导向最强，流量获取、页面与屏幕、用户属性、技术维度都标准化，适合参考表格维度与转化列。</li>
+            <li><strong>Matomo：</strong>开源和可私有化路线，访客日志、访客画像、趋势 Row Evolution、行为和来源报表很完整，适合参考可下钻的详情体验。</li>
+            <li><strong>Plausible：</strong>轻量、隐私友好、仪表盘克制，所有卡片都围绕筛选和排序，适合参考“少但够用”的视觉与交互。</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div>
+          <h2>二、六家产品在四个页面上的做法</h2>
+          <p>下面这张表把四个子页面横向铺开，重点看每家产品“默认给用户看什么、怎么交互、强项在哪里”。</p>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>产品</th>
+              <th>趋势分析</th>
+              <th>来源分析</th>
+              <th>页面分析</th>
+              <th>访客分析</th>
+              <th>优点评论</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>百度统计</strong></td>
+              <td>以时间趋势图为核心，支持今天、昨天、近 7 天、近 30 天与对比；图上有坐标轴、图例、悬浮提示。</td>
+              <td>拆成全部来源、搜索引擎、搜索词、外部链接、站内来源；适合站长判断流量从哪里来。</td>
+              <td>拆成受访页面、入口页面、受访域名、页面点击图、页面上下游；偏内容和站内路径分析。</td>
+              <td>地域分布、系统环境、新老访客等传统访客维度。</td>
+              <td>中文站点统计最贴近用户习惯，导航层级和命名值得直接参考；缺点是页面信息密度较高，需要我们做减法。</td>
+            </tr>
+            <tr>
+              <td><strong>友盟+ U-Web / CNZZ</strong></td>
+              <td>强调访问概况和趋势，适合看 PV、UV、IP、访问次数等基础指标的周期变化。</td>
+              <td>按照来源形式做细分，例如搜索、外链、媒体渠道等。</td>
+              <td>统计各页面浏览情况，并可延展到热点图、用户视点、后续浏览行为。</td>
+              <td>关注访客来源、地区分布、新访客等站长常用维度。</td>
+              <td>优势是“站长可读性”强，模块命名直白；适合作为我们的中文术语和基础表格参考。</td>
+            </tr>
+            <tr>
+              <td><strong>51.LA</strong></td>
+              <td>偏轻量监控，基础趋势与实时变化放得更靠前。</td>
+              <td>强调访客来源、搜索词、热门页面，对站长日常排查很友好。</td>
+              <td>支持热门页面、阅读深度、热力图等更偏页面内容质量的能力。</td>
+              <td>实时访客智能监测是亮点，也覆盖访客轨迹和蜘蛛爬虫记录。</td>
+              <td>优点是简单、实用、监控感强；适合我们在访客页采用“实时列表 + 轨迹”的表达。</td>
+            </tr>
+            <tr>
+              <td><strong>Google Analytics 4</strong></td>
+              <td>趋势通常结合维度和事件指标，图表上方可切换指标，表格下方支持维度、搜索、排序、比较。</td>
+              <td>核心是 User acquisition 与 Traffic acquisition，区分“新用户从哪里来”和“会话从哪里来”。</td>
+              <td>Pages and screens 报表以页面路径/标题为主维度，叠加用户、浏览、参与度、关键事件和收入。</td>
+              <td>User attributes、Tech 等报表覆盖地域、语言、设备、浏览器、系统等。</td>
+              <td>优势是数据模型严谨、转化导向强；适合我们参考“来源表格列”和“页面转化列”。</td>
+            </tr>
+            <tr>
+              <td><strong>Matomo</strong></td>
+              <td>Visitors Overview 用 Row Evolution 展示时间趋势，支持切换或叠加多个指标。</td>
+              <td>Acquisition/Referrers 支持搜索引擎、网站、活动、社交等来源，并能下钻。</td>
+              <td>Behavior/Pages 可以看页面浏览、唯一浏览、平均停留、跳出和退出，行级可看趋势。</td>
+              <td>Visits Log、Visitor Profile 与实时访客很强，能看到单次访问的来源、设备、动作路径。</td>
+              <td>优势是下钻能力和访客细节最完整；适合我们在高级区域保留“访客明细/页面明细抽屉”。</td>
+            </tr>
+            <tr>
+              <td><strong>Plausible</strong></td>
+              <td>顶部大图可切换 Unique visitors、Visits、Pageviews、Bounce rate、Duration，并支持周期对比。</td>
+              <td>Sources / Channels / Campaigns 模块按访客数排序，点击任何条目即可全局筛选。</td>
+              <td>Top Pages、Entry Pages、Exit Pages 简洁呈现，可展开看更多指标，如跳出率、停留、滚动深度。</td>
+              <td>Locations、Devices、Browsers、OS 都是可点击筛选的简洁列表。</td>
+              <td>优势是轻量、干净、交互一致；适合我们控制复杂度，做“点击即筛选”的统一模式。</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div>
+          <h2>三、趋势分析页面</h2>
+          <p>趋势分析的目标不是多放图，而是让用户回答三个问题：最近涨跌如何、哪个指标在变化、变化发生在什么时间点。</p>
+        </div>
+      </div>
+      <div class="module-layout">
+        <div class="module-copy">
+          <div class="subcard">
+            <h4>主流产品共有模块</h4>
+            <p>时间选择、粒度切换、核心指标切换、多指标趋势图、同比/环比对比、明细数据表。</p>
+          </div>
+          <div class="subcard">
+            <h4>关键交互</h4>
+            <p>时间快捷项与自定义日期；按小时/日/周/月聚合；图例点击隐藏系列；鼠标悬浮显示当日多指标；表格列排序和导出。</p>
+          </div>
+          <div class="subcard">
+            <h4>视觉呈现</h4>
+            <p>百度统计和 Matomo 都采用“上方控制、中央折线、下方表格”的稳定结构。Plausible 更强调指标卡点击切换主图，适合降低复杂度。</p>
+          </div>
+          <div class="quote">
+            建议：我们的趋势页采用“百度统计式坐标轴 + Plausible 式指标切换 + Matomo 式多指标叠加”，默认看 PV/UV，允许打开 IP、访问次数、跳出率、平均停留。
+          </div>
+        </div>
+        <div class="diagram-card">
+          <div class="diagram-head">
+            <div class="diagram-title">推荐趋势图结构示意</div>
+            <div class="diagram-actions">
+              <span class="btn active">PV</span>
+              <span class="btn">UV</span>
+              <span class="btn">IP</span>
+              <span class="btn">对比上期</span>
+            </div>
+          </div>
+          <div class="chart">
+            <div class="axis-y"><span>12k</span><span>9k</span><span>6k</span><span>3k</span><span>0</span></div>
+            <div class="line"></div>
+            <div class="tooltip">
+              2026-05-25
+              <div><span>PV</span><strong>2,360</strong></div>
+              <div><span>UV</span><strong>918</strong></div>
+              <div><span>环比</span><strong>+8.4%</strong></div>
+            </div>
+            <div class="axis-x"><span>05/21</span><span>05/22</span><span>05/23</span><span>05/24</span><span>05/25</span><span>05/26</span><span>05/27</span></div>
+          </div>
+          <div class="legend"><span><i class="dot"></i>当前周期 PV</span><span><i class="dot cyan"></i>当前周期 UV</span></div>
+          <div class="mini-table">
+            <div class="mini-row head"><span>日期</span><span>PV</span><span>UV</span><span>跳出率</span></div>
+            <div class="mini-row"><span>2026-05-27</span><strong>2,480</strong><strong>892</strong><span>42%</span></div>
+            <div class="mini-row"><span>2026-05-26</span><strong>2,210</strong><strong>844</strong><span>45%</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div>
+          <h2>四、来源分析页面</h2>
+          <p>来源分析要回答“用户从哪里来、哪个渠道质量更高、搜索词和外链有没有贡献”。国内产品偏搜索词/外链，GA4 偏渠道和转化，Plausible 偏点击筛选。</p>
+        </div>
+      </div>
+      <div class="module-layout">
+        <div class="module-copy">
+          <div class="subcard">
+            <h4>主流产品共有模块</h4>
+            <p>来源概览、渠道分组、搜索引擎/搜索词、外部链接、直接访问、活动/UTM、来源明细表。</p>
+          </div>
+          <div class="subcard">
+            <h4>关键交互</h4>
+            <p>渠道 Tab 切换；点击来源全局筛选；按 PV、UV、跳出率、转化排序；支持搜索来源域名或关键词；可下钻到入口页。</p>
+          </div>
+          <div class="subcard">
+            <h4>视觉呈现</h4>
+            <p>顶部用渠道占比条或环图，下面用来源表。GA4 的来源/媒介/活动维度清晰，百度统计和 51.LA 的搜索词、外链更贴合国内站长。</p>
+          </div>
+          <div class="quote">
+            建议：我们的来源页采用 GA4 的“渠道/来源/媒介/转化”表格骨架，保留百度统计式搜索词、外部链接入口，并让 Plausible 式点击筛选贯穿全页。
+          </div>
+        </div>
+        <div class="diagram-card">
+          <div class="diagram-head">
+            <div class="diagram-title">推荐来源分析结构示意</div>
+            <div class="diagram-actions">
+              <span class="btn active">渠道</span>
+              <span class="btn">搜索词</span>
+              <span class="btn">外链</span>
+            </div>
+          </div>
+          <div class="bars">
+            <div class="bar-row"><strong>搜索引擎</strong><div class="bar-track"><div class="bar-fill" style="width: 62%"></div></div><span>62%</span></div>
+            <div class="bar-row"><strong>直接访问</strong><div class="bar-track"><div class="bar-fill" style="width: 28%"></div></div><span>28%</span></div>
+            <div class="bar-row"><strong>外部链接</strong><div class="bar-track"><div class="bar-fill" style="width: 21%"></div></div><span>21%</span></div>
+            <div class="bar-row"><strong>AI 推荐</strong><div class="bar-track"><div class="bar-fill" style="width: 14%"></div></div><span>14%</span></div>
+          </div>
+          <div class="mini-table">
+            <div class="mini-row head"><span>来源</span><span>访客</span><span>跳出</span><span>转化</span></div>
+            <div class="mini-row"><span>百度搜索 / organic</span><strong>1,420</strong><span>39%</span><strong>48</strong></div>
+            <div class="mini-row"><span>direct / none</span><strong>936</strong><span>52%</span><strong>19</strong></div>
+            <div class="mini-row"><span>公众号文章 / referral</span><strong>512</strong><span>44%</span><strong>22</strong></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div>
+          <h2>五、页面分析页面</h2>
+          <p>页面分析要回答“哪些页面被看、哪些页面带来入口、哪些页面导致退出、页面质量如何”。这里不能只放 PV 列表，需要把入口、退出、停留、滚动/阅读、转化放到同一个判断框架里。</p>
+        </div>
+      </div>
+      <div class="module-layout">
+        <div class="module-copy">
+          <div class="subcard">
+            <h4>主流产品共有模块</h4>
+            <p>受访页面、入口页面、退出页面、页面趋势、页面搜索、页面类型筛选、单页详情。</p>
+          </div>
+          <div class="subcard">
+            <h4>关键交互</h4>
+            <p>页面路径搜索；点击页面进入详情；在详情里看该页面趋势、主要来源、下一步去向、退出率；表格列可排序。</p>
+          </div>
+          <div class="subcard">
+            <h4>视觉呈现</h4>
+            <p>GA4 的 Pages and screens 适合做基础表；百度统计的受访/入口/退出分类适合中文用户理解；Matomo 的页面行级趋势适合做详情抽屉。</p>
+          </div>
+          <div class="quote">
+            建议：我们的页面页默认显示“受访页面”表，顶部加受访/入口/退出三段切换；点击某行打开右侧详情，展示趋势、来源、上下游和转化。
+          </div>
+        </div>
+        <div class="diagram-card">
+          <div class="diagram-head">
+            <div class="diagram-title">推荐页面分析结构示意</div>
+            <div class="diagram-actions">
+              <span class="btn active">受访页面</span>
+              <span class="btn">入口页</span>
+              <span class="btn">退出页</span>
+            </div>
+          </div>
+          <div class="mini-table">
+            <div class="mini-row head"><span>页面</span><span>PV</span><span>入口</span><span>退出率</span></div>
+            <div class="mini-row"><span>/ 首页</span><strong>5,820</strong><span>2,103</span><span>32%</span></div>
+            <div class="mini-row"><span>/products 产品</span><strong>2,430</strong><span>824</span><span>48%</span></div>
+            <div class="mini-row"><span>/solutions 方案</span><strong>1,108</strong><span>316</span><span>41%</span></div>
+          </div>
+          <div class="path-card" style="margin-top: 14px;">
+            <div class="path-list">
+              <div class="path-item">百度搜索 38%</div>
+              <div class="path-item">AI 推荐 16%</div>
+              <div class="path-item">直接访问 12%</div>
+            </div>
+            <div class="arrow">→</div>
+            <div class="path-list">
+              <div class="path-item">/pricing 28%</div>
+              <div class="path-item">/contact 19%</div>
+              <div class="path-item">退出 24%</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div>
+          <h2>六、访客分析页面</h2>
+          <p>访客分析要回答“来的人是谁、用什么设备、来自哪里、这次访问做了什么”。国内产品常见地域/设备/新老访客，Matomo 的实时访客和访客画像更适合做深层下钻。</p>
+        </div>
+      </div>
+      <div class="module-layout">
+        <div class="module-copy">
+          <div class="subcard">
+            <h4>主流产品共有模块</h4>
+            <p>地域分布、设备类型、浏览器/系统、新老访客、实时访客、访问明细、访问频次和停留。</p>
+          </div>
+          <div class="subcard">
+            <h4>关键交互</h4>
+            <p>地图和列表切换；点击省份/城市/设备筛选；实时访客列表自动刷新；点击访客查看访问轨迹和来源。</p>
+          </div>
+          <div class="subcard">
+            <h4>视觉呈现</h4>
+            <p>Plausible 的 Locations/Devices 简洁，适合基础概览；Matomo 的 Visits Log 信息最完整，适合详情；51.LA 的实时监测感强，适合运营值守。</p>
+          </div>
+          <div class="quote">
+            建议：我们的访客页采用“地域设备概览 + 新老访客 + 实时访客列表”三段式。隐私上不强调个人识别，只展示匿名访客 ID、来源、页面路径和设备环境。
+          </div>
+        </div>
+        <div class="diagram-card">
+          <div class="diagram-head">
+            <div class="diagram-title">推荐访客分析结构示意</div>
+            <div class="diagram-actions">
+              <span class="btn active">地域</span>
+              <span class="btn">设备</span>
+              <span class="btn">实时</span>
+            </div>
+          </div>
+          <div class="visitor-panel">
+            <div class="map"></div>
+            <div class="timeline">
+              <div class="visit"><strong>深圳 · 百度搜索 · PC</strong><span>进入 /products，停留 48 秒，浏览 3 页</span></div>
+              <div class="visit"><strong>上海 · AI 推荐 · Mobile</strong><span>进入 /solutions，访问 2 页，完成咨询点击</span></div>
+              <div class="visit"><strong>北京 · 直接访问 · PC</strong><span>进入首页，跳转 /contact</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div>
+          <h2>七、我们自己的模块取舍建议</h2>
+          <p>如果要把这四个三级页面做成可上线的基础版，建议按 P0/P1/P2 分层。P0 是必须做，P1 是增强体验，P2 是高级分析，可以后续迭代。</p>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>页面</th>
+              <th>优先级</th>
+              <th>建议模块</th>
+              <th>采用谁的交互和视觉</th>
+              <th>为什么这么选</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>趋势分析</strong></td>
+              <td><span class="priority">P0</span></td>
+              <td>时间筛选、粒度切换、PV/UV/IP/访问次数/跳出率/平均停留指标、折线趋势、对比上期、日明细表。</td>
+              <td><span class="tag blue">百度统计坐标轴与 tooltip</span><span class="tag green">Plausible 指标点击切换</span><span class="tag purple">Matomo 多指标叠加</span></td>
+              <td>这是所有站点统计最基础的页面，用户要先确认趋势是否异常，再决定看来源或页面。</td>
+            </tr>
+            <tr>
+              <td><strong>来源分析</strong></td>
+              <td><span class="priority">P0</span></td>
+              <td>渠道概览、来源/媒介表、搜索引擎、搜索词、外部链接、入口页关联、来源质量指标。</td>
+              <td><span class="tag blue">GA4 表格结构</span><span class="tag orange">百度/51.LA 搜索词与外链</span><span class="tag green">Plausible 点击筛选</span></td>
+              <td>国内站点很依赖搜索和外链判断，GA4 的来源维度又能让后续广告、活动、AI 推荐来源接得更自然。</td>
+            </tr>
+            <tr>
+              <td><strong>页面分析</strong></td>
+              <td><span class="priority">P0</span></td>
+              <td>受访页面、入口页面、退出页面、页面路径搜索、PV/UV/入口/退出/跳出/停留/转化、页面详情抽屉。</td>
+              <td><span class="tag blue">GA4 Pages and screens</span><span class="tag orange">百度受访/入口/退出</span><span class="tag purple">Matomo 行级详情</span></td>
+              <td>页面分析不能只有访问量，需要同时判断“能不能带来入口”和“是不是造成退出”。</td>
+            </tr>
+            <tr>
+              <td><strong>访客分析</strong></td>
+              <td><span class="priority">P0</span></td>
+              <td>地域分布、设备/浏览器/系统、新老访客、实时访客列表、匿名访问轨迹。</td>
+              <td><span class="tag green">Plausible 地域设备列表</span><span class="tag purple">Matomo Visits Log</span><span class="tag orange">51.LA 实时监测感</span></td>
+              <td>访客页不适合做得太重，基础版先解决“人群结构 + 实时行为”，高级画像后续再加。</td>
+            </tr>
+            <tr>
+              <td><strong>趋势分析</strong></td>
+              <td><span class="priority">P1</span></td>
+              <td>节假日/活动标记、异常波动提示、指标注释、导出 CSV。</td>
+              <td><span class="tag purple">Matomo 注释和 Row Evolution 思路</span></td>
+              <td>帮助解释波动原因，但不是第一版必须。</td>
+            </tr>
+            <tr>
+              <td><strong>页面分析</strong></td>
+              <td><span class="priority">P1</span></td>
+              <td>页面上下游、滚动深度、阅读完成率、热点入口。</td>
+              <td><span class="tag orange">51.LA / CNZZ 页面热度</span><span class="tag green">Plausible Scroll depth</span></td>
+              <td>对内容质量判断很有价值，但需要埋点或采集能力配合。</td>
+            </tr>
+            <tr>
+              <td><strong>访客分析</strong></td>
+              <td><span class="priority">P2</span></td>
+              <td>访客画像、跨次访问归因、漏斗、分群。</td>
+              <td><span class="tag blue">GA4 探索分析</span><span class="tag purple">Matomo Visitor Profile</span></td>
+              <td>属于高级分析，数据要求和解释成本都高，当前可先不做。</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div>
+          <h2>八、页面落地结构建议</h2>
+          <p>这四个三级页面应该保持同一套交互语言：顶部时间筛选固定，主体先趋势/概览，再明细表，点击表格行进入详情。</p>
+        </div>
+      </div>
+      <div class="grid four">
+        <div class="card">
+          <h3>趋势分析</h3>
+          <p><span class="tag blue">默认打开</span><span class="tag">折线图</span><span class="tag">明细表</span></p>
+          <p>最先上线。它承接访问统计首页的“查看完整趋势”。图必须有坐标轴、时间轴、图例、悬浮提示、对比开关。</p>
+        </div>
+        <div class="card">
+          <h3>来源分析</h3>
+          <p><span class="tag blue">渠道表</span><span class="tag">搜索词</span><span class="tag">外链</span></p>
+          <p>把搜索、直接、外链、AI 推荐、活动来源统一纳入渠道。点击任何来源后，其他页面都应该带上筛选条件。</p>
+        </div>
+        <div class="card">
+          <h3>页面分析</h3>
+          <p><span class="tag blue">受访页</span><span class="tag">入口页</span><span class="tag">退出页</span></p>
+          <p>默认表格不要塞太多列，主列保留 PV、UV、入口、退出、跳出、停留、转化。详情通过抽屉承载。</p>
+        </div>
+        <div class="card">
+          <h3>访客分析</h3>
+          <p><span class="tag blue">地域</span><span class="tag">设备</span><span class="tag">实时</span></p>
+          <p>不做复杂个人画像，先做匿名实时访客和结构分布。视觉要比页面分析更偏监控和列表。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div>
+          <h2>九、资料来源</h2>
+          <p>以下为本报告主要参考的官方 demo、官方文档和产品公开页。</p>
+        </div>
+      </div>
+      <div class="source-list">
+        <a href="https://tongji.baidu.com/main/overview/demo/overview/index" target="_blank" rel="noreferrer">百度统计公开 Demo：网站概况、趋势图、来源、页面、访客导航</a>
+        <a href="https://www.umeng.com/web" target="_blank" rel="noreferrer">友盟+ U-Web：网站统计产品页</a>
+        <a href="https://www.cnzz.com/about/new/Statistics_station.html" target="_blank" rel="noreferrer">CNZZ 站长统计介绍页</a>
+        <a href="https://web.51.la/" target="_blank" rel="noreferrer">51.LA 网站统计 V6 产品页</a>
+        <a href="https://support.google.com/analytics/answer/14731736" target="_blank" rel="noreferrer">Google Analytics Help：User acquisition 与 Traffic acquisition 差异</a>
+        <a href="https://developers.google.com/analytics/devguides/reporting/data/v1/predefined-reports" target="_blank" rel="noreferrer">Google Analytics Data API：预定义报表对应 UI 查询</a>
+        <a href="https://fr.matomo.org/faq/reports/visitors-overview/" target="_blank" rel="noreferrer">Matomo：Visitors Overview / Visits Over Time 说明</a>
+        <a href="https://fr.matomo.org/faq/reports/the-visits-in-real-time-widget/" target="_blank" rel="noreferrer">Matomo：Visits in Real-time 报表说明</a>
+        <a href="https://plausible.io/docs/guided-tour" target="_blank" rel="noreferrer">Plausible：Dashboard overview / Sources / Top Pages / Devices</a>
+        <a href="https://plausible.io/docs/" target="_blank" rel="noreferrer">Plausible：官方文档索引</a>
+      </div>
+    </section>
+
+    <footer>
+      本报告中的结构图为基于公开页面和文档整理后的设计示意，并非第三方产品截图。
+    </footer>
+  </main>
+</body>
+</html>

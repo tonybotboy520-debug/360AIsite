@@ -1,0 +1,1478 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>访问统计四个三级页面设计 Demo</title>
+  <style>
+    :root {
+      --bg: #f3f6fb;
+      --paper: #ffffff;
+      --ink: #111827;
+      --muted: #667085;
+      --line: #dde5f0;
+      --soft: #f7f9fc;
+      --blue: #2468d8;
+      --blue-weak: #edf4ff;
+      --cyan: #0891b2;
+      --green: #079455;
+      --amber: #c98500;
+      --red: #d92d20;
+      --violet: #6941c6;
+      --shadow: 0 16px 42px rgba(16, 32, 51, .08);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+      letter-spacing: 0;
+    }
+
+    button, input { font: inherit; }
+
+    .page {
+      width: min(1440px, calc(100vw - 40px));
+      margin: 0 auto;
+      padding: 24px 0 64px;
+    }
+
+    .demo-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+      align-items: flex-start;
+      margin-bottom: 18px;
+    }
+
+    .demo-head h1 {
+      margin: 0;
+      font-size: 26px;
+      line-height: 1.25;
+    }
+
+    .demo-head p {
+      max-width: 760px;
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    .demo-jump {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    .demo-jump a {
+      display: inline-flex;
+      align-items: center;
+      min-height: 34px;
+      padding: 0 12px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background: white;
+      color: #344054;
+      font-size: 13px;
+      font-weight: 800;
+      text-decoration: none;
+    }
+
+    .demo-jump a:hover {
+      color: var(--blue);
+      border-color: rgba(36, 104, 216, .34);
+    }
+
+    .artboard {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 286px;
+      gap: 16px;
+      align-items: start;
+      margin-top: 18px;
+    }
+
+    .mock-app {
+      min-width: 0;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: var(--paper);
+      box-shadow: var(--shadow);
+    }
+
+    .notes {
+      position: sticky;
+      top: 16px;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: white;
+      box-shadow: 0 12px 30px rgba(16, 32, 51, .06);
+    }
+
+    .notes h2 {
+      margin: 0 0 10px;
+      font-size: 17px;
+      line-height: 1.3;
+    }
+
+    .notes p {
+      margin: 0 0 12px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.65;
+    }
+
+    .note-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .note-tags span,
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      padding: 0 8px;
+      border-radius: 999px;
+      background: #eef3fb;
+      color: #475467;
+      font-size: 11px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .note-tags .blue,
+    .tag.blue { color: #1d4ed8; background: #dbeafe; }
+    .note-tags .green,
+    .tag.green { color: #047857; background: #d1fae5; }
+    .note-tags .amber,
+    .tag.amber { color: #a15c00; background: #fff1d6; }
+    .note-tags .violet,
+    .tag.violet { color: #5b21b6; background: #ede9fe; }
+
+    .app-top {
+      display: grid;
+      grid-template-columns: 210px minmax(0, 1fr) 190px;
+      gap: 16px;
+      align-items: center;
+      min-height: 68px;
+      padding: 0 18px;
+      border-bottom: 1px solid var(--line);
+      background: #fff;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .brand i {
+      display: grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      color: #fff;
+      background: #173a85;
+      border-radius: 10px;
+      font-style: normal;
+      font-weight: 900;
+    }
+
+    .top-nav {
+      justify-self: center;
+      display: flex;
+      gap: 4px;
+      min-width: 0;
+      padding: 5px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #f0f3f8;
+    }
+
+    .top-nav span {
+      min-width: 96px;
+      padding: 9px 14px;
+      border-radius: 999px;
+      color: #47566f;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 850;
+      white-space: nowrap;
+    }
+
+    .top-nav .active {
+      color: var(--blue);
+      background: #fff;
+      box-shadow: 0 8px 16px rgba(16, 32, 51, .08);
+    }
+
+    .account {
+      justify-self: end;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 38px;
+      padding: 0 12px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      color: #536179;
+      background: white;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .workspace {
+      padding: 18px;
+      background: #f7f9fc;
+    }
+
+    .second-tabs,
+    .third-tabs {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .second-tabs::-webkit-scrollbar,
+    .third-tabs::-webkit-scrollbar { display: none; }
+
+    .second-tabs {
+      padding: 0 0 10px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .second-tabs button,
+    .third-tabs button {
+      border: 0;
+      background: transparent;
+      color: #44536b;
+      font-size: 13px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .second-tabs button {
+      position: relative;
+      min-height: 36px;
+      padding: 0 14px;
+    }
+
+    .second-tabs .active {
+      color: var(--blue);
+    }
+
+    .second-tabs .active::after {
+      content: "";
+      position: absolute;
+      left: 10px;
+      right: 10px;
+      bottom: -11px;
+      height: 3px;
+      border-radius: 3px 3px 0 0;
+      background: var(--blue);
+    }
+
+    .third-tabs {
+      margin-top: 14px;
+      padding: 6px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: white;
+    }
+
+    .third-tabs button {
+      min-height: 34px;
+      padding: 0 14px;
+      border-radius: 9px;
+    }
+
+    .third-tabs .active {
+      color: var(--blue);
+      background: var(--blue-weak);
+    }
+
+    .filter-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      margin-top: 12px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: white;
+    }
+
+    .filter-row b {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .filter-row span,
+    .filter-row label {
+      display: inline-flex;
+      align-items: center;
+      min-height: 32px;
+      padding: 0 11px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      color: #44536b;
+      background: #fbfdff;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .filter-row .active {
+      color: var(--blue);
+      border-color: rgba(36, 104, 216, .30);
+      background: var(--blue-weak);
+    }
+
+    .filter-row input {
+      width: 126px;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      color: #344054;
+      font-weight: 750;
+    }
+
+    .content {
+      display: grid;
+      gap: 14px;
+      margin-top: 14px;
+    }
+
+    .kpis {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .kpi {
+      min-height: 116px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-top: 3px solid var(--blue);
+      border-radius: 12px;
+      background: white;
+      box-shadow: 0 10px 22px rgba(16, 32, 51, .04);
+    }
+
+    .kpi.green { border-top-color: var(--green); }
+    .kpi.amber { border-top-color: var(--amber); }
+    .kpi.red { border-top-color: var(--red); }
+    .kpi.violet { border-top-color: var(--violet); }
+
+    .kpi-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+    }
+
+    .delta {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 48px;
+      min-height: 22px;
+      padding: 0 8px;
+      border-radius: 999px;
+      color: var(--green);
+      background: #eaf8f1;
+      font-size: 12px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .delta.down { color: var(--red); background: #fff0ef; }
+    .delta.flat { color: var(--amber); background: #fff7e5; }
+
+    .kpi strong {
+      display: block;
+      margin-top: 16px;
+      font-size: 27px;
+      line-height: 1;
+    }
+
+    .kpi small {
+      display: block;
+      margin-top: 9px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .panel {
+      min-width: 0;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: white;
+      box-shadow: 0 10px 22px rgba(16, 32, 51, .04);
+    }
+
+    .panel-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      align-items: flex-start;
+      margin-bottom: 14px;
+    }
+
+    .panel-head h3 {
+      margin: 0;
+      font-size: 17px;
+      line-height: 1.25;
+    }
+
+    .panel-head p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .mini-actions {
+      display: flex;
+      gap: 5px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .mini-actions span {
+      min-height: 26px;
+      padding: 5px 8px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      color: #44536b;
+      background: #fbfdff;
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .mini-actions .active {
+      color: var(--blue);
+      background: var(--blue-weak);
+      border-color: rgba(36, 104, 216, .28);
+    }
+
+    .split-main {
+      display: grid;
+      grid-template-columns: minmax(0, 1.45fr) minmax(320px, .85fr);
+      gap: 14px;
+      align-items: stretch;
+    }
+
+    .chart-wrap {
+      position: relative;
+      height: 282px;
+      padding: 8px 0 0;
+    }
+
+    svg {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .grid-line {
+      stroke: #e6ebf2;
+      stroke-width: 1;
+    }
+
+    .axis-label {
+      fill: #8a98ad;
+      font-size: 12px;
+    }
+
+    .pv,
+    .uv,
+    .compare-line {
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .pv { stroke: var(--blue); stroke-width: 4; }
+    .uv { stroke: var(--cyan); stroke-width: 3; }
+    .compare-line { stroke: #98a2b3; stroke-width: 3; stroke-dasharray: 7 7; }
+    .area { fill: rgba(36, 104, 216, .10); }
+
+    .chart-tooltip {
+      position: absolute;
+      right: 64px;
+      top: 46px;
+      width: 178px;
+      padding: 11px 12px;
+      border-radius: 11px;
+      background: #111827;
+      color: white;
+      box-shadow: 0 16px 32px rgba(17, 24, 39, .22);
+      font-size: 12px;
+    }
+
+    .chart-tooltip b {
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .chart-tooltip span {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      color: #dbe4f0;
+      line-height: 1.7;
+    }
+
+    .axis {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 6px;
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      text-align: center;
+    }
+
+    .legend {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .legend i {
+      width: 18px;
+      height: 3px;
+      border-radius: 999px;
+      background: var(--blue);
+    }
+
+    .legend span:nth-child(2) i { background: var(--cyan); }
+    .legend span:nth-child(3) i { background: #98a2b3; }
+
+    .insight-list,
+    .simple-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .insight-item,
+    .simple-row {
+      padding: 11px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #fbfdff;
+    }
+
+    .insight-item {
+      display: grid;
+      gap: 6px;
+    }
+
+    .insight-item b,
+    .simple-row b {
+      font-size: 13px;
+    }
+
+    .insight-item span,
+    .simple-row span {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .bar-line {
+      height: 7px;
+      margin-top: 8px;
+      overflow: hidden;
+      background: #e9eef7;
+      border-radius: 999px;
+    }
+
+    .bar-line i {
+      display: block;
+      height: 100%;
+      background: linear-gradient(90deg, var(--blue), var(--cyan));
+      border-radius: inherit;
+    }
+
+    .data-table {
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+    }
+
+    .row {
+      display: grid;
+      gap: 10px;
+      align-items: center;
+      min-height: 48px;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+      background: white;
+      font-size: 12px;
+    }
+
+    .row:last-child { border-bottom: 0; }
+    .row.head {
+      min-height: 38px;
+      color: var(--muted);
+      background: #f3f6fb;
+      font-weight: 900;
+    }
+
+    .row b { font-size: 13px; }
+    .row small {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .source-table .row { grid-template-columns: 1.4fr .8fr .55fr .65fr .65fr .55fr; }
+    .trend-table .row { grid-template-columns: 1fr .75fr .75fr .75fr .75fr .75fr; }
+    .page-table .row { grid-template-columns: 1.45fr .72fr .58fr .58fr .58fr .62fr .62fr; }
+    .visitor-table .row { grid-template-columns: 1.05fr .95fr .8fr .8fr .7fr; }
+
+    .source-grid {
+      display: grid;
+      grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr);
+      gap: 14px;
+    }
+
+    .channel-bars {
+      display: grid;
+      gap: 10px;
+    }
+
+    .channel {
+      display: grid;
+      grid-template-columns: 92px minmax(0, 1fr) 54px;
+      gap: 10px;
+      align-items: center;
+      min-height: 44px;
+      padding: 9px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #fbfdff;
+      font-size: 12px;
+    }
+
+    .channel b { font-size: 13px; }
+
+    .stack {
+      height: 10px;
+      overflow: hidden;
+      background: #e9eef7;
+      border-radius: 999px;
+    }
+
+    .stack i {
+      display: block;
+      height: 100%;
+      background: var(--blue);
+      border-radius: inherit;
+    }
+
+    .source-quality {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .quality-card {
+      min-height: 94px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #fbfdff;
+    }
+
+    .quality-card strong {
+      display: block;
+      margin-top: 10px;
+      font-size: 23px;
+      line-height: 1;
+    }
+
+    .quality-card span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .page-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 330px;
+      gap: 14px;
+    }
+
+    .detail-card {
+      display: grid;
+      gap: 12px;
+      padding: 14px;
+      border: 1px solid rgba(36, 104, 216, .24);
+      border-radius: 12px;
+      background: #f7fbff;
+    }
+
+    .detail-card h4 {
+      margin: 0;
+      font-size: 15px;
+    }
+
+    .mini-chart {
+      height: 82px;
+      padding: 8px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background: white;
+    }
+
+    .path-flow {
+      display: grid;
+      grid-template-columns: 1fr 32px 1fr;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .path-col {
+      display: grid;
+      gap: 7px;
+    }
+
+    .path-col span {
+      min-height: 30px;
+      padding: 7px 8px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: white;
+      color: #475467;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .path-arrow {
+      display: grid;
+      place-items: center;
+      width: 32px;
+      height: 32px;
+      border-radius: 999px;
+      background: var(--blue-weak);
+      color: var(--blue);
+      font-weight: 900;
+    }
+
+    .visitor-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 350px;
+      gap: 14px;
+    }
+
+    .map-card {
+      min-height: 260px;
+      position: relative;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background:
+        radial-gradient(circle at 62% 39%, rgba(36, 104, 216, .33) 0 11px, transparent 12px),
+        radial-gradient(circle at 49% 51%, rgba(8, 145, 178, .29) 0 15px, transparent 16px),
+        radial-gradient(circle at 72% 58%, rgba(7, 148, 85, .25) 0 10px, transparent 11px),
+        radial-gradient(circle at 42% 66%, rgba(201, 133, 0, .22) 0 8px, transparent 9px),
+        linear-gradient(135deg, #fbfdff, #eef6ff);
+    }
+
+    .map-card::before {
+      content: "";
+      position: absolute;
+      inset: 30px 46px 34px;
+      border: 1px dashed rgba(36, 104, 216, .24);
+      border-radius: 48% 52% 44% 58%;
+      transform: rotate(-8deg);
+    }
+
+    .map-card strong {
+      position: absolute;
+      left: 14px;
+      top: 14px;
+      font-size: 14px;
+    }
+
+    .map-card span {
+      position: absolute;
+      left: 14px;
+      bottom: 14px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .device-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .device {
+      min-height: 88px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #fbfdff;
+    }
+
+    .device b {
+      display: block;
+      font-size: 13px;
+    }
+
+    .device strong {
+      display: block;
+      margin-top: 9px;
+      font-size: 22px;
+    }
+
+    .live-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .live-card {
+      padding: 11px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #fbfdff;
+    }
+
+    .live-card b {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 13px;
+    }
+
+    .live-card span {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .live-card i {
+      display: inline-flex;
+      align-items: center;
+      min-height: 20px;
+      padding: 0 7px;
+      border-radius: 999px;
+      background: #eaf8f1;
+      color: var(--green);
+      font-style: normal;
+      font-size: 11px;
+      font-weight: 900;
+    }
+
+    .donut-wrap {
+      display: grid;
+      grid-template-columns: 120px 1fr;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .donut {
+      width: 118px;
+      height: 118px;
+      border-radius: 50%;
+      background: conic-gradient(var(--blue) 0 66%, var(--cyan) 66% 82%, #d8e1ef 82% 100%);
+      position: relative;
+    }
+
+    .donut::after {
+      content: "66%";
+      position: absolute;
+      inset: 22px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: white;
+      color: var(--blue);
+      font-size: 22px;
+      font-weight: 900;
+    }
+
+    .metric-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .metric-list span {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      color: #475467;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    @media (max-width: 1180px) {
+      .artboard,
+      .split-main,
+      .source-grid,
+      .page-layout,
+      .visitor-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .notes { position: static; }
+      .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .app-top { grid-template-columns: 1fr; }
+      .top-nav { justify-self: stretch; overflow-x: auto; }
+      .account { justify-self: start; }
+    }
+
+    @media (max-width: 720px) {
+      .page { width: min(100vw - 20px, 1440px); padding-top: 14px; }
+      .demo-head { display: block; }
+      .demo-jump { justify-content: flex-start; margin-top: 12px; }
+      .workspace { padding: 12px; }
+      .kpis,
+      .source-quality,
+      .device-grid {
+        grid-template-columns: 1fr;
+      }
+      .row { min-width: 760px; }
+      .data-table { overflow-x: auto; }
+      .donut-wrap { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="demo-head">
+      <div>
+        <h1>访问统计四个三级页面设计 Demo</h1>
+        <p>基于百度统计、友盟+ U-Web/CNZZ、51.LA、GA4、Matomo、Plausible 的对标结论，整理成四个可落地的后台设计稿。每页保留同一套导航、时间筛选和表格语言，主体模块按页面目标差异化。</p>
+      </div>
+      <nav class="demo-jump" aria-label="页面跳转">
+        <a href="#trend">趋势分析</a>
+        <a href="#source">来源分析</a>
+        <a href="#page">页面分析</a>
+        <a href="#visitor">访客分析</a>
+      </nav>
+    </header>
+
+    <section class="artboard" id="trend">
+      <div class="mock-app">
+        <header class="app-top">
+          <div class="brand"><i>G</i>GEO Studio</div>
+          <nav class="top-nav">
+            <span>GEO工作台</span>
+            <span>企业知识库</span>
+            <span>生成官网</span>
+            <span class="active">数据分析</span>
+          </nav>
+          <div class="account">133****0748</div>
+        </header>
+        <div class="workspace">
+          <nav class="second-tabs">
+            <button class="active">访问统计</button>
+            <button>GEO 统计</button>
+            <button>SEO 统计</button>
+          </nav>
+          <nav class="third-tabs">
+            <button>概览</button>
+            <button class="active">趋势分析</button>
+            <button>来源分析</button>
+            <button>页面分析</button>
+            <button>访客分析</button>
+          </nav>
+          <section class="filter-row">
+            <b>统计时间</b>
+            <span class="active">近 7 天</span>
+            <span>近 30 天</span>
+            <span>自定义</span>
+            <label><input value="2026/05/21" readonly /></label>
+            <b>至</b>
+            <label><input value="2026/05/27" readonly /></label>
+            <span class="active">按日</span>
+            <span>按周</span>
+            <span>按月</span>
+            <span>对比上期</span>
+          </section>
+          <section class="content">
+            <div class="kpis">
+              <article class="kpi green">
+                <div class="kpi-head"><span>PV</span><span class="delta">+18%</span></div>
+                <strong>12,480</strong>
+                <small>页面浏览量，衡量内容被打开次数。</small>
+              </article>
+              <article class="kpi green">
+                <div class="kpi-head"><span>UV</span><span class="delta">+11%</span></div>
+                <strong>4,862</strong>
+                <small>独立访客，衡量真实访问人数。</small>
+              </article>
+              <article class="kpi">
+                <div class="kpi-head"><span>IP</span><span class="delta">+6%</span></div>
+                <strong>3,916</strong>
+                <small>独立 IP，辅助识别访问覆盖。</small>
+              </article>
+              <article class="kpi amber">
+                <div class="kpi-head"><span>跳出率</span><span class="delta down">+4%</span></div>
+                <strong>48%</strong>
+                <small>单页访问占比升高，需要关注入口页质量。</small>
+              </article>
+              <article class="kpi violet">
+                <div class="kpi-head"><span>平均停留</span><span class="delta flat">持平</span></div>
+                <strong>1分26秒</strong>
+                <small>较上周期 +12 秒，内容阅读稳定。</small>
+              </article>
+            </div>
+
+            <div class="split-main">
+              <article class="panel">
+                <div class="panel-head">
+                  <div>
+                    <h3>访问趋势</h3>
+                    <p>可切换指标、查看上期对比，并在悬浮时显示同一时间点的多指标数据。</p>
+                  </div>
+                  <div class="mini-actions">
+                    <span class="active">PV</span>
+                    <span>UV</span>
+                    <span>IP</span>
+                    <span>跳出率</span>
+                  </div>
+                </div>
+                <div class="chart-wrap">
+                  <svg viewBox="0 0 760 280" role="img" aria-label="访问趋势折线图">
+                    <line class="grid-line" x1="52" y1="34" x2="730" y2="34" />
+                    <line class="grid-line" x1="52" y1="82" x2="730" y2="82" />
+                    <line class="grid-line" x1="52" y1="130" x2="730" y2="130" />
+                    <line class="grid-line" x1="52" y1="178" x2="730" y2="178" />
+                    <line class="grid-line" x1="52" y1="226" x2="730" y2="226" />
+                    <text class="axis-label" x="8" y="38">12k</text>
+                    <text class="axis-label" x="14" y="86">9k</text>
+                    <text class="axis-label" x="14" y="134">6k</text>
+                    <text class="axis-label" x="14" y="182">3k</text>
+                    <text class="axis-label" x="24" y="230">0</text>
+                    <path class="area" d="M52,208 C118,186 160,174 220,160 C286,142 330,116 394,122 C462,128 508,94 572,104 C630,112 676,72 730,60 L730,226 L52,226 Z" />
+                    <path class="compare-line" d="M52,218 C112,204 168,194 222,174 C286,158 330,150 394,144 C468,138 520,124 574,122 C642,120 690,104 730,96" />
+                    <path class="uv" d="M52,222 C118,210 166,200 226,188 C282,178 338,154 394,160 C468,166 510,144 574,138 C634,132 676,114 730,106" />
+                    <path class="pv" d="M52,208 C118,186 160,174 220,160 C286,142 330,116 394,122 C462,128 508,94 572,104 C630,112 676,72 730,60" />
+                    <circle cx="572" cy="104" r="5" fill="#2468d8" />
+                    <line x1="572" y1="36" x2="572" y2="226" stroke="#2468d8" stroke-width="1" stroke-dasharray="4 5" />
+                  </svg>
+                  <div class="chart-tooltip">
+                    <b>2026-05-25 周一</b>
+                    <span>PV <strong>2,360</strong></span>
+                    <span>UV <strong>918</strong></span>
+                    <span>上期 PV <strong>2,048</strong></span>
+                  </div>
+                  <div class="axis"><span>05/21</span><span>05/22</span><span>05/23</span><span>05/24</span><span>05/25</span><span>05/26</span><span>05/27</span></div>
+                  <div class="legend"><span><i></i>当前周期 PV</span><span><i></i>当前周期 UV</span><span><i></i>上周期 PV</span></div>
+                </div>
+              </article>
+              <aside class="panel">
+                <div class="panel-head">
+                  <div>
+                    <h3>波动摘要</h3>
+                    <p>只保留可解释的异常，不放无意义装饰。</p>
+                  </div>
+                </div>
+                <div class="insight-list">
+                  <div class="insight-item"><b>05/25 PV 峰值</b><span>主要由“智能制造解决方案”页面增长带动。</span><div class="bar-line"><i style="width: 88%"></i></div></div>
+                  <div class="insight-item"><b>搜索流量 +21%</b><span>百度搜索与 AI 推荐入口贡献明显。</span><div class="bar-line"><i style="width: 68%"></i></div></div>
+                  <div class="insight-item"><b>产品页跳出偏高</b><span>/products 跳出率 61%，建议进入页面分析查看。</span><div class="bar-line"><i style="width: 61%"></i></div></div>
+                </div>
+              </aside>
+            </div>
+
+            <article class="panel">
+              <div class="panel-head">
+                <div>
+                  <h3>日明细</h3>
+                  <p>对应 Matomo 的 Row Evolution 思路，图下直接保留可排序数据表。</p>
+                </div>
+                <div class="mini-actions"><span>导出 CSV</span><span>列设置</span></div>
+              </div>
+              <div class="data-table trend-table">
+                <div class="row head"><span>日期</span><span>PV</span><span>UV</span><span>IP</span><span>跳出率</span><span>平均停留</span></div>
+                <div class="row"><b>2026-05-27</b><span>2,480</span><span>892</span><span>738</span><span>42%</span><span>1分33秒</span></div>
+                <div class="row"><b>2026-05-26</b><span>2,210</span><span>844</span><span>690</span><span>45%</span><span>1分24秒</span></div>
+                <div class="row"><b>2026-05-25</b><span>2,360</span><span>918</span><span>742</span><span>40%</span><span>1分38秒</span></div>
+              </div>
+            </article>
+          </section>
+        </div>
+      </div>
+      <aside class="notes">
+        <h2>趋势分析取法</h2>
+        <p>主图参考百度统计的坐标轴、图例和悬浮提示；指标切换参考 Plausible；多指标叠加和表格明细参考 Matomo。</p>
+        <div class="note-tags">
+          <span class="blue">百度统计：趋势图</span>
+          <span class="green">Plausible：指标切换</span>
+          <span class="violet">Matomo：明细表</span>
+        </div>
+      </aside>
+    </section>
+
+    <section class="artboard" id="source">
+      <div class="mock-app">
+        <header class="app-top">
+          <div class="brand"><i>G</i>GEO Studio</div>
+          <nav class="top-nav">
+            <span>GEO工作台</span>
+            <span>企业知识库</span>
+            <span>生成官网</span>
+            <span class="active">数据分析</span>
+          </nav>
+          <div class="account">133****0748</div>
+        </header>
+        <div class="workspace">
+          <nav class="second-tabs">
+            <button class="active">访问统计</button>
+            <button>GEO 统计</button>
+            <button>SEO 统计</button>
+          </nav>
+          <nav class="third-tabs">
+            <button>概览</button>
+            <button>趋势分析</button>
+            <button class="active">来源分析</button>
+            <button>页面分析</button>
+            <button>访客分析</button>
+          </nav>
+          <section class="filter-row">
+            <b>统计时间</b>
+            <span class="active">近 7 天</span>
+            <span>近 30 天</span>
+            <span>自定义</span>
+            <label><input value="2026/05/21" readonly /></label>
+            <b>至</b>
+            <label><input value="2026/05/27" readonly /></label>
+            <span class="active">全部来源</span>
+            <span>搜索引擎</span>
+            <span>外部链接</span>
+            <span>活动 UTM</span>
+          </section>
+          <section class="content">
+            <div class="source-quality">
+              <article class="quality-card"><span>搜索引擎访客</span><strong>2,146</strong><small class="tag green">转化 48</small></article>
+              <article class="quality-card"><span>外链推荐访客</span><strong>936</strong><small class="tag blue">跳出 44%</small></article>
+              <article class="quality-card"><span>AI 推荐入口</span><strong>418</strong><small class="tag violet">新增来源</small></article>
+            </div>
+            <div class="source-grid">
+              <article class="panel">
+                <div class="panel-head">
+                  <div>
+                    <h3>来源渠道分布</h3>
+                    <p>点击任一渠道后，全页进入该渠道筛选状态。</p>
+                  </div>
+                  <div class="mini-actions"><span class="active">访客</span><span>转化</span><span>跳出率</span></div>
+                </div>
+                <div class="channel-bars">
+                  <div class="channel"><b>搜索引擎</b><div class="stack"><i style="width: 62%; background: var(--blue);"></i></div><strong>62%</strong></div>
+                  <div class="channel"><b>直接访问</b><div class="stack"><i style="width: 28%; background: var(--cyan);"></i></div><strong>28%</strong></div>
+                  <div class="channel"><b>外部链接</b><div class="stack"><i style="width: 21%; background: var(--green);"></i></div><strong>21%</strong></div>
+                  <div class="channel"><b>AI 推荐</b><div class="stack"><i style="width: 14%; background: var(--violet);"></i></div><strong>14%</strong></div>
+                  <div class="channel"><b>活动 UTM</b><div class="stack"><i style="width: 9%; background: var(--amber);"></i></div><strong>9%</strong></div>
+                </div>
+              </article>
+              <aside class="panel">
+                <div class="panel-head">
+                  <div>
+                    <h3>搜索词与入口页</h3>
+                    <p>保留国内站长最常用的搜索词、入口页贡献。</p>
+                  </div>
+                </div>
+                <div class="simple-list">
+                  <div class="simple-row"><b>智能制造官网</b><span>百度 · 入口 /solutions · 186 UV</span><div class="bar-line"><i style="width: 86%"></i></div></div>
+                  <div class="simple-row"><b>企业 AI 知识库</b><span>百度 · 入口 /products · 142 UV</span><div class="bar-line"><i style="width: 70%"></i></div></div>
+                  <div class="simple-row"><b>GEO 优化服务</b><span>Bing · 入口 /geo · 96 UV</span><div class="bar-line"><i style="width: 52%"></i></div></div>
+                </div>
+              </aside>
+            </div>
+            <article class="panel">
+              <div class="panel-head">
+                <div>
+                  <h3>来源明细</h3>
+                  <p>采用 GA4 的来源/媒介/参与/转化结构，同时保留百度统计式入口页。</p>
+                </div>
+                <div class="mini-actions"><span>搜索来源</span><span>导出</span><span>列设置</span></div>
+              </div>
+              <div class="data-table source-table">
+                <div class="row head"><span>来源 / 媒介</span><span>入口页</span><span>访客</span><span>参与率</span><span>跳出率</span><span>转化</span></div>
+                <div class="row"><b>百度 / organic<small>搜索引擎</small></b><span>/products</span><span>1,420</span><span>63%</span><span>39%</span><b>48</b></div>
+                <div class="row"><b>direct / none<small>直接访问</small></b><span>/</span><span>936</span><span>44%</span><span>52%</span><b>19</b></div>
+                <div class="row"><b>公众号文章 / referral<small>外部链接</small></b><span>/solutions</span><span>512</span><span>58%</span><span>44%</span><b>22</b></div>
+                <div class="row"><b>AI 推荐 / referral<small>新来源</small></b><span>/geo</span><span>418</span><span>69%</span><span>31%</span><b>31</b></div>
+              </div>
+            </article>
+          </section>
+        </div>
+      </div>
+      <aside class="notes">
+        <h2>来源分析取法</h2>
+        <p>表格结构参考 GA4 的 Traffic acquisition；搜索词、外链和入口页参考百度统计、51.LA；点击筛选和简洁分组参考 Plausible。</p>
+        <div class="note-tags">
+          <span class="blue">GA4：来源/媒介表</span>
+          <span class="amber">百度/51.LA：搜索词</span>
+          <span class="green">Plausible：点击筛选</span>
+        </div>
+      </aside>
+    </section>
+
+    <section class="artboard" id="page">
+      <div class="mock-app">
+        <header class="app-top">
+          <div class="brand"><i>G</i>GEO Studio</div>
+          <nav class="top-nav">
+            <span>GEO工作台</span>
+            <span>企业知识库</span>
+            <span>生成官网</span>
+            <span class="active">数据分析</span>
+          </nav>
+          <div class="account">133****0748</div>
+        </header>
+        <div class="workspace">
+          <nav class="second-tabs">
+            <button class="active">访问统计</button>
+            <button>GEO 统计</button>
+            <button>SEO 统计</button>
+          </nav>
+          <nav class="third-tabs">
+            <button>概览</button>
+            <button>趋势分析</button>
+            <button>来源分析</button>
+            <button class="active">页面分析</button>
+            <button>访客分析</button>
+          </nav>
+          <section class="filter-row">
+            <b>统计时间</b>
+            <span class="active">近 7 天</span>
+            <span>近 30 天</span>
+            <label><input value="2026/05/21" readonly /></label>
+            <b>至</b>
+            <label><input value="2026/05/27" readonly /></label>
+            <span class="active">受访页面</span>
+            <span>入口页面</span>
+            <span>退出页面</span>
+            <span>页面搜索</span>
+          </section>
+          <section class="content">
+            <div class="kpis">
+              <article class="kpi green"><div class="kpi-head"><span>受访页面数</span><span class="delta">+12%</span></div><strong>86</strong><small>当前周期产生访问的页面。</small></article>
+              <article class="kpi"><div class="kpi-head"><span>首页入口占比</span><span class="delta flat">56%</span></div><strong>2,103</strong><small>首页仍是主要入口。</small></article>
+              <article class="kpi amber"><div class="kpi-head"><span>产品页退出率</span><span class="delta down">偏高</span></div><strong>61%</strong><small>/products 需要重点看来源质量。</small></article>
+              <article class="kpi violet"><div class="kpi-head"><span>咨询转化</span><span class="delta">+9</span></div><strong>42</strong><small>/contact 转化效率最佳。</small></article>
+              <article class="kpi"><div class="kpi-head"><span>平均停留</span><span class="delta">+12秒</span></div><strong>1分21秒</strong><small>内容阅读表现稳定。</small></article>
+            </div>
+            <div class="page-layout">
+              <article class="panel">
+                <div class="panel-head">
+                  <div>
+                    <h3>页面明细</h3>
+                    <p>融合 GA4 Pages and screens 与百度统计受访/入口/退出分组。</p>
+                  </div>
+                  <div class="mini-actions"><span class="active">PV</span><span>入口</span><span>退出</span><span>转化</span></div>
+                </div>
+                <div class="data-table page-table">
+                  <div class="row head"><span>页面</span><span>页面类型</span><span>PV</span><span>UV</span><span>入口</span><span>退出率</span><span>转化</span></div>
+                  <div class="row"><b>首页<small>/</small></b><span>受访 / 入口</span><span>5,820</span><span>2,416</span><span>2,103</span><span>32%</span><b>18</b></div>
+                  <div class="row"><b>产品服务<small>/products</small></b><span>受访 / 转化</span><span>2,430</span><span>1,106</span><span>824</span><span>61%</span><b>9</b></div>
+                  <div class="row"><b>解决方案<small>/solutions</small></b><span>受访 / 入口</span><span>1,108</span><span>624</span><span>316</span><span>56%</span><b>6</b></div>
+                  <div class="row"><b>联系我们<small>/contact</small></b><span>转化 / 退出</span><span>618</span><span>402</span><span>91</span><span>37%</span><b>42</b></div>
+                </div>
+              </article>
+              <aside class="detail-card">
+                <h4>页面详情：/products</h4>
+                <div class="note-tags"><span class="blue">受访页</span><span class="amber">退出偏高</span><span class="green">转化页</span></div>
+                <div class="mini-chart">
+                  <svg viewBox="0 0 300 82">
+                    <line class="grid-line" x1="0" y1="20" x2="300" y2="20" />
+                    <line class="grid-line" x1="0" y1="50" x2="300" y2="50" />
+                    <path class="uv" d="M4,66 C42,52 62,50 94,42 C126,34 152,48 182,34 C216,18 246,32 296,18" />
+                    <path class="pv" d="M4,58 C42,42 64,36 98,30 C130,24 150,38 186,22 C216,8 250,24 296,8" />
+                  </svg>
+                </div>
+                <div class="path-flow">
+                  <div class="path-col">
+                    <span>百度搜索 38%</span>
+                    <span>AI 推荐 16%</span>
+                    <span>公众号 12%</span>
+                  </div>
+                  <div class="path-arrow">→</div>
+                  <div class="path-col">
+                    <span>/pricing 28%</span>
+                    <span>/contact 19%</span>
+                    <span>退出 24%</span>
+                  </div>
+                </div>
+                <div class="simple-row"><b>建议关注</b><span>产品页访问量高但退出偏高，需要检查首屏信息和 CTA 是否明确。</span></div>
+              </aside>
+            </div>
+          </section>
+        </div>
+      </div>
+      <aside class="notes">
+        <h2>页面分析取法</h2>
+        <p>受访/入口/退出的中文分组参考百度统计；表格字段参考 GA4；点击行后展示 Matomo 式页面趋势和上下游。</p>
+        <div class="note-tags">
+          <span class="amber">百度：页面分类</span>
+          <span class="blue">GA4：页面表</span>
+          <span class="violet">Matomo：详情下钻</span>
+        </div>
+      </aside>
+    </section>
+
+    <section class="artboard" id="visitor">
+      <div class="mock-app">
+        <header class="app-top">
+          <div class="brand"><i>G</i>GEO Studio</div>
+          <nav class="top-nav">
+            <span>GEO工作台</span>
+            <span>企业知识库</span>
+            <span>生成官网</span>
+            <span class="active">数据分析</span>
+          </nav>
+          <div class="account">133****0748</div>
+        </header>
+        <div class="workspace">
+          <nav class="second-tabs">
+            <button class="active">访问统计</button>
+            <button>GEO 统计</button>
+            <button>SEO 统计</button>
+          </nav>
+          <nav class="third-tabs">
+            <button>概览</button>
+            <button>趋势分析</button>
+            <button>来源分析</button>
+            <button>页面分析</button>
+            <button class="active">访客分析</button>
+          </nav>
+          <section class="filter-row">
+            <b>统计时间</b>
+            <span class="active">近 7 天</span>
+            <span>近 30 天</span>
+            <label><input value="2026/05/21" readonly /></label>
+            <b>至</b>
+            <label><input value="2026/05/27" readonly /></label>
+            <span class="active">地域</span>
+            <span>设备</span>
+            <span>新老访客</span>
+            <span>实时访客</span>
+          </section>
+          <section class="content">
+            <div class="kpis">
+              <article class="kpi green"><div class="kpi-head"><span>在线访客</span><span class="delta">实时</span></div><strong>28</strong><small>最近 5 分钟仍在访问。</small></article>
+              <article class="kpi"><div class="kpi-head"><span>新访客</span><span class="delta">+13%</span></div><strong>3,218</strong><small>本周期首次访问用户。</small></article>
+              <article class="kpi violet"><div class="kpi-head"><span>回访客</span><span class="delta">+7%</span></div><strong>1,644</strong><small>品牌关注度保持增长。</small></article>
+              <article class="kpi"><div class="kpi-head"><span>移动端占比</span><span class="delta flat">36%</span></div><strong>1,749</strong><small>移动端体验需要持续关注。</small></article>
+              <article class="kpi amber"><div class="kpi-head"><span>广东访客</span><span class="delta">31%</span></div><strong>1,506</strong><small>核心地域流量集中。</small></article>
+            </div>
+            <div class="visitor-grid">
+              <div class="content" style="margin-top:0">
+                <article class="panel">
+                  <div class="panel-head">
+                    <div>
+                      <h3>访客地域与设备</h3>
+                      <p>参考 Plausible 的轻量分布，点击省份或设备即可筛选。</p>
+                    </div>
+                    <div class="mini-actions"><span class="active">省份</span><span>城市</span><span>设备</span></div>
+                  </div>
+                  <div class="map-card"><strong>地域热度</strong><span>广东 31% · 江苏 18% · 上海 12%</span></div>
+                  <div class="device-grid">
+                    <div class="device"><b>PC</b><strong>64%</strong><span class="tag blue">Chrome 为主</span></div>
+                    <div class="device"><b>Mobile</b><strong>36%</strong><span class="tag green">微信内置浏览器</span></div>
+                    <div class="device"><b>Tablet</b><strong>4%</strong><span class="tag">少量访问</span></div>
+                  </div>
+                </article>
+                <article class="panel">
+                  <div class="panel-head">
+                    <div>
+                      <h3>访客结构</h3>
+                      <p>新老访客保留为基础判断，不做过重的个人画像。</p>
+                    </div>
+                  </div>
+                  <div class="donut-wrap">
+                    <div class="donut"></div>
+                    <div class="metric-list">
+                      <span><b>新访客</b><strong>66%</strong></span>
+                      <span><b>回访客</b><strong>34%</strong></span>
+                      <span><b>平均访问页数</b><strong>3.2 页</strong></span>
+                      <span><b>回访转化率</b><strong>5.8%</strong></span>
+                    </div>
+                  </div>
+                </article>
+              </div>
+              <aside class="panel">
+                <div class="panel-head">
+                  <div>
+                    <h3>实时访客</h3>
+                    <p>采用 Matomo Visits Log 与 51.LA 实时监测思路。</p>
+                  </div>
+                  <div class="mini-actions"><span class="active">自动刷新</span></div>
+                </div>
+                <div class="live-list">
+                  <div class="live-card"><b>深圳 · 百度搜索 <i>PC</i></b><span>进入 /products，停留 48 秒，浏览 3 页</span></div>
+                  <div class="live-card"><b>上海 · AI 推荐 <i>Mobile</i></b><span>进入 /solutions，访问 2 页，点击咨询按钮</span></div>
+                  <div class="live-card"><b>北京 · 直接访问 <i>PC</i></b><span>进入首页，跳转 /contact，回访客</span></div>
+                  <div class="live-card"><b>杭州 · 外部链接 <i>Mobile</i></b><span>进入 /geo，停留 2 分 11 秒</span></div>
+                </div>
+              </aside>
+            </div>
+            <article class="panel">
+              <div class="panel-head">
+                <div>
+                  <h3>访客明细</h3>
+                  <p>匿名访客 ID + 来源 + 设备 + 路径，不展示敏感个人识别信息。</p>
+                </div>
+                <div class="mini-actions"><span>筛选城市</span><span>筛选设备</span><span>导出</span></div>
+              </div>
+              <div class="data-table visitor-table">
+                <div class="row head"><span>匿名访客</span><span>地域 / 设备</span><span>来源</span><span>访问路径</span><span>状态</span></div>
+                <div class="row"><b>Visitor-8A42</b><span>深圳 · PC</span><span>百度搜索</span><span>/products → /contact</span><b>转化</b></div>
+                <div class="row"><b>Visitor-31F0</b><span>上海 · Mobile</span><span>AI 推荐</span><span>/solutions → /pricing</span><b>访问中</b></div>
+                <div class="row"><b>Visitor-77C1</b><span>北京 · PC</span><span>直接访问</span><span>/ → /contact</span><b>回访</b></div>
+              </div>
+            </article>
+          </section>
+        </div>
+      </div>
+      <aside class="notes">
+        <h2>访客分析取法</h2>
+        <p>地域和设备参考 Plausible 的简洁列表；实时访客与轨迹参考 Matomo 和 51.LA；新老访客保留国内统计网站的基础口径。</p>
+        <div class="note-tags">
+          <span class="green">Plausible：地域设备</span>
+          <span class="violet">Matomo：访客日志</span>
+          <span class="amber">51.LA：实时监测</span>
+        </div>
+      </aside>
+    </section>
+  </main>
+</body>
+</html>
