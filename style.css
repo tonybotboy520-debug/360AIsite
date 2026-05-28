@@ -53,8 +53,8 @@ button { cursor: pointer; }
 }
 .logo-box img { width: 44px; height: 44px; }
 .logo-box-wide {
-  width: 240px;
-  height: 72px;
+  width: 300px;
+  height: 90px;
   border-radius: 18px;
   background: transparent;
   box-shadow: none;
@@ -144,8 +144,8 @@ button { cursor: pointer; }
   display: inline-flex;
   align-items: center;
   gap: 9px;
-  min-width: 168px;
-  height: 44px;
+  min-width: 210px;
+  height: 55px;
   border: 0;
   background: transparent;
   color: var(--ink);
@@ -153,8 +153,8 @@ button { cursor: pointer; }
   justify-self: start;
 }
 .brand-chip img {
-  width: 168px;
-  height: 44px;
+  width: 210px;
+  height: 55px;
   border-radius: 9px;
   object-fit: cover;
   object-position: center;
