@@ -151,6 +151,7 @@ button { cursor: pointer; }
   color: var(--ink);
   font-weight: 800;
   justify-self: start;
+  transform: translateY(5px);
 }
 .brand-chip img {
   width: 210px;
