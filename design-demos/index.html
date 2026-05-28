@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>360智网后台补充页面设计稿</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div id="app"></div>
+    <script>
+      const pages = [
+        { id: "geo", title: "GEO 工作台", desc: "诊断、改写、结构化、AI 可抓取效果闭环", tag: "核心差异化" },
+        { id: "pages", title: "页面管理", desc: "管理站点页面树、发布状态和页面健康度", tag: "站点结构" },
+        { id: "knowledge", title: "企业知识库", desc: "沉淀企业事实、资料、产品、案例与 FAQ", tag: "内容来源" },
+        { id: "publish", title: "发布与域名", desc: "域名、SSL、发布检查、版本回滚", tag: "上线闭环" },
+        { id: "analytics", title: "数据分析", desc: "访问、转化、GEO 曝光与内容缺口", tag: "增长监控" },
+        { id: "settings", title: "账号团队套餐", desc: "成员、权限、额度、账单和企业设置", tag: "企业管理" }
+      ];
+
+      const pageId = new URLSearchParams(location.search).get("page") || "geo";
+      const current = pages.find(page => page.id === pageId) || pages[0];
+
+      function nav() {
+        return pages.map(page => `
+          <a class="nav-item ${page.id === current.id ? "active" : ""}" href="?page=${page.id}">
+            <span>${page.title}</span>
+            <small>${page.tag}</small>
+          </a>
+        `).join("");
+      }
+
+      function shell(content) {
+        return `
+          <div class="shell">
+            <aside class="sidebar">
+              <div class="brand">
+                <img src="../assets/ai-avatar.png" alt="" />
+                <div><strong>360智网</strong><span>AI 建站与 GEO 优化</span></div>
+              </div>
+              <nav>${nav()}</nav>
+              <div class="site-card">
+                <span>当前站点</span>
+                <strong>智能制造企业官网</strong>
+                <small>www.zhizao-demo.cn</small>
+              </div>
+            </aside>
+            <main class="workspace">
+              <header class="topbar">
+                <div>
+                  <p class="eyebrow">${current.tag}</p>
+                  <h1>${current.title}</h1>
+                  <p>${current.desc}</p>
+                </div>
+                <div class="top-actions">
+                  <button class="ghost">查看预览</button>
+                  <button class="primary">AI 继续优化</button>
+                </div>
+              </header>
+              ${content}
+            </main>
+          </div>
+        `;
+      }
+
+      function stat(label, value, note, tone = "") {
+        return `<div class="stat ${tone}"><span>${label}</span><strong>${value}</strong><small>${note}</small></div>`;
+      }
+
+      function score(value, label) {
+        return `<div class="score" style="--score:${value * 3.6}deg"><div><strong>${value}</strong><span>${label}</span></div></div>`;
+      }
+
+      function progress(label, value, tone = "") {
+        return `<div class="progress-row"><span>${label}</span><b>${value}%</b><div class="bar"><i class="${tone}" style="width:${value}%"></i></div></div>`;
+      }
+
+      function geoPage() {
+        return shell(`
+          <section class="stats-grid">
+            ${stat("GEO 总评分", "82", "较上次 +13 分", "good")}
+            ${stat("AI 问答覆盖", "47 / 68", "仍缺 21 个高频问题")}
+            ${stat("结构化模块", "9", "Schema、FAQ、产品参数")}
+            ${stat("待采纳改写", "18", "涉及 6 个页面", "warn")}
+          </section>
+          <section class="geo-layout">
+            <div class="panel">
+              <div class="panel-head"><h2>页面诊断</h2><button class="ghost small">重新扫描</button></div>
+              <div class="score-row">
+                ${score(82, "AI 可读性")}
+                <div class="diagnosis-list">
+                  <div><b>实体识别不足</b><span>品牌、产品型号、行业场景出现频率偏低</span></div>
+                  <div><b>答案段落不集中</b><span>核心卖点分散在多个模块，AI 摘要难抓取</span></div>
+                  <div><b>FAQ 覆盖缺口</b><span>缺少价格、交付周期、售后和适配设备问题</span></div>
+                </div>
+              </div>
+              ${progress("品牌实体一致性", 88, "ok")}
+              ${progress("问答式内容覆盖", 69, "mid")}
+              ${progress("结构化数据完整度", 76, "mid")}
+              ${progress("页面摘要可抓取性", 58, "bad")}
+            </div>
+            <div class="panel">
+              <div class="panel-head"><h2>AI 改写队列</h2><button class="primary small">批量采纳</button></div>
+              <div class="rewrite-card selected"><b>首页首屏标题</b><span>补充“工业视觉检测 / 自动化产线 / 数据采集”实体</span><em>高优先级</em></div>
+              <div class="rewrite-card"><b>产品服务段落</b><span>改为问答式短段，提升 AI 引用概率</span><em>建议采纳</em></div>
+              <div class="rewrite-card"><b>关于我们简介</b><span>增加成立时间、服务区域、交付能力</span><em>待确认事实</em></div>
+              <div class="rewrite-card"><b>FAQ 模块</b><span>新增 8 个采购前高频问题</span><em>可自动生成</em></div>
+            </div>
+          </section>
+          <section class="split">
+            <div class="panel before-after">
+              <div class="panel-head"><h2>改写前后对比</h2><span class="pill">首页 / Hero</span></div>
+              <div class="compare">
+                <article><span>原文</span><p>以 AI 与自动化能力驱动制造升级，提供工业视觉、自动化产线、数据采集方案。</p></article>
+                <article class="after"><span>GEO 改写后</span><p>智能制造企业官网推荐：我们为制造企业提供工业视觉检测、自动化产线集成、设备数据采集与互联方案，覆盖缺陷识别、尺寸测量、产线追溯和数字化工厂升级。</p></article>
+              </div>
+            </div>
+            <div class="panel schema-box">
+              <div class="panel-head"><h2>结构化建议</h2><span class="pill ok">JSON-LD</span></div>
+              <code>{ "@type": "Organization", "name": "智造科技", "areaServed": "华东制造企业", "knowsAbout": ["工业视觉检测", "自动化产线"] }</code>
+            </div>
+          </section>
+        `);
+      }
+
+      function pagesPage() {
+        const rows = [
+          ["首页", "/", "已发布", "92", "3 分钟前"],
+          ["产品服务", "/products", "待优化", "74", "今天 16:20"],
+          ["解决方案", "/solutions", "草稿", "66", "昨天"],
+          ["客户案例", "/cases", "已发布", "81", "昨天"],
+          ["新闻资讯", "/news", "缺内容", "49", "3 天前"],
+          ["FAQ", "/faq", "待生成", "38", "未发布"]
+        ];
+        return shell(`
+          <section class="pages-grid">
+            <div class="panel tree-panel">
+              <div class="panel-head"><h2>站点页面树</h2><button class="ghost small">新增页面</button></div>
+              <div class="tree">
+                <b>智能制造企业官网</b>
+                <span class="active">首页</span><span>产品服务</span><span>解决方案</span><span>客户案例</span><span>新闻资讯</span><span>关于我们</span><span>联系我们</span><span>FAQ</span>
+              </div>
+            </div>
+            <div class="panel table-panel">
+              <div class="panel-head"><h2>页面列表</h2><div><button class="ghost small">批量扫描</button><button class="primary small">AI 生成子页面</button></div></div>
+              <table>
+                <thead><tr><th>页面</th><th>路径</th><th>状态</th><th>GEO</th><th>最后更新</th><th>操作</th></tr></thead>
+                <tbody>${rows.map(row => `<tr><td><b>${row[0]}</b></td><td>${row[1]}</td><td><span class="badge">${row[2]}</span></td><td><strong>${row[3]}</strong></td><td>${row[4]}</td><td><button class="link">编辑</button></td></tr>`).join("")}</tbody>
+              </table>
+            </div>
+          </section>
+          <section class="split">
+            <div class="panel">
+              <div class="panel-head"><h2>当前页面健康度</h2><span class="pill warn">产品服务</span></div>
+              ${progress("标题与摘要", 86, "ok")}
+              ${progress("产品参数完整度", 63, "mid")}
+              ${progress("内部链接", 71, "mid")}
+              ${progress("FAQ 覆盖", 35, "bad")}
+            </div>
+            <div class="panel action-list">
+              <div class="panel-head"><h2>建议动作</h2><button class="primary small">一键处理</button></div>
+              <div><b>生成产品详情页</b><span>从产品库选择 4 个核心产品自动生成页面</span></div>
+              <div><b>补充页面摘要</b><span>为 AI 抓取生成 120 字可引用摘要</span></div>
+              <div><b>添加交叉链接</b><span>链接到案例、解决方案和 FAQ 页面</span></div>
+            </div>
+          </section>
+        `);
+      }
+
+      function knowledgePage() {
+        return shell(`
+          <section class="knowledge-grid">
+            <div class="panel source-panel">
+              <div class="panel-head"><h2>资料来源</h2><button class="primary small">上传资料</button></div>
+              <div class="doc active"><b>企业介绍.pdf</b><span>已抽取 32 条事实</span><em>可信</em></div>
+              <div class="doc"><b>产品画册.docx</b><span>已抽取 18 个产品参数</span><em>需复核</em></div>
+              <div class="doc"><b>客户案例.xlsx</b><span>已识别 9 个案例</span><em>待确认</em></div>
+              <div class="upload-box">拖拽 PDF / Word / 图片 / 表格到此处</div>
+            </div>
+            <div class="panel facts-panel">
+              <div class="panel-head"><h2>企业事实卡片</h2><button class="ghost small">冲突检测</button></div>
+              <div class="fact-grid">
+                <div><span>企业名称</span><b>智造科技有限公司</b></div>
+                <div><span>主营业务</span><b>工业视觉检测、自动化产线</b></div>
+                <div><span>服务区域</span><b>华东、华南制造企业</b></div>
+                <div><span>交付能力</span><b>方案设计到现场调试</b></div>
+              </div>
+              <div class="tabs"><span class="active">产品库</span><span>解决方案</span><span>案例库</span><span>FAQ</span><span>品牌语气</span></div>
+              <div class="product-row"><b>工业视觉检测系统</b><span>缺陷识别 / 尺寸测量 / 追溯报表</span><button class="ghost small">生成页面</button></div>
+              <div class="product-row"><b>设备数据采集网关</b><span>PLC 连接 / 实时看板 / 运维告警</span><button class="ghost small">生成 FAQ</button></div>
+              <div class="product-row"><b>自动化产线集成</b><span>评估 / 机械电气设计 / 调试交付</span><button class="ghost small">补参数</button></div>
+            </div>
+          </section>
+          <section class="panel">
+            <div class="panel-head"><h2>待确认内容</h2><button class="primary small">确认并入库</button></div>
+            <div class="review-strip">
+              <div><b>成立时间冲突</b><span>官网旧文案为 2018，营业资料为 2019</span></div>
+              <div><b>案例客户不可公开</b><span>3 个案例缺少授权状态</span></div>
+              <div><b>价格信息缺失</b><span>建议添加“按项目评估报价”说明</span></div>
+            </div>
+          </section>
+        `);
+      }
+
+      function publishPage() {
+        return shell(`
+          <section class="stats-grid">
+            ${stat("域名状态", "已解析", "DNS 生效于 3 分钟前", "good")}
+            ${stat("SSL 证书", "有效", "到期还有 86 天", "good")}
+            ${stat("发布版本", "v1.8", "可随时回滚")}
+            ${stat("上线检查", "11 / 14", "3 项需要处理", "warn")}
+          </section>
+          <section class="publish-grid">
+            <div class="panel">
+              <div class="panel-head"><h2>域名绑定</h2><button class="ghost small">添加域名</button></div>
+              <div class="domain-card"><b>www.zhizao-demo.cn</b><span class="badge ok">主域名</span><small>CNAME -> publish.360zhiwang.com</small></div>
+              <div class="domain-card muted"><b>zhizao-demo.cn</b><span class="badge">跳转到 www</span><small>301 redirect 已开启</small></div>
+              <div class="dns-box"><b>DNS 记录</b><code>CNAME  www  publish.360zhiwang.com</code><code>TXT  @  360zw-verify=82ca19</code></div>
+            </div>
+            <div class="panel checklist">
+              <div class="panel-head"><h2>发布前检查</h2><button class="primary small">修复问题</button></div>
+              <label><input type="checkbox" checked /> 移动端布局检查通过</label>
+              <label><input type="checkbox" checked /> 表单接收邮箱已配置</label>
+              <label><input type="checkbox" checked /> sitemap.xml 已生成</label>
+              <label><input type="checkbox" /> 新闻资讯页面内容为空</label>
+              <label><input type="checkbox" /> FAQ 页面未发布</label>
+              <label><input type="checkbox" /> 2 个按钮链接未配置</label>
+            </div>
+          </section>
+          <section class="panel version-panel">
+            <div class="panel-head"><h2>版本历史</h2><button class="primary small">发布新版本</button></div>
+            <div class="timeline"><div><b>v1.8 当前版本</b><span>GEO 改写首页与产品页，发布于今天 18:42</span></div><div><b>v1.7</b><span>新增客户案例页面</span></div><div><b>v1.6</b><span>首次绑定正式域名</span></div></div>
+          </section>
+        `);
+      }
+
+      function analyticsPage() {
+        return shell(`
+          <section class="stats-grid">
+            ${stat("本周访问", "12,480", "环比 +18%", "good")}
+            ${stat("询盘转化", "3.6%", "表单 42 条")}
+            ${stat("AI 搜索曝光", "326", "品牌相关问答", "good")}
+            ${stat("内容缺口", "14", "集中在价格/交付")}
+          </section>
+          <section class="analytics-grid">
+            <div class="panel chart-panel">
+              <div class="panel-head"><h2>访问与转化趋势</h2><span class="pill">近 30 天</span></div>
+              <div class="chart">${[38,45,32,54,62,58,73,69,82,78,92,88].map(v => `<i style="height:${v}%"></i>`).join("")}</div>
+              <div class="legend"><span>自然搜索</span><span>AI 推荐</span><span>直接访问</span><span>表单提交</span></div>
+            </div>
+            <div class="panel">
+              <div class="panel-head"><h2>GEO 曝光问题</h2><button class="ghost small">查看详情</button></div>
+              <div class="question"><b>工业视觉检测系统哪家公司好？</b><span>排名第 4，建议补充案例证明</span></div>
+              <div class="question"><b>自动化产线改造周期多久？</b><span>未覆盖，建议生成 FAQ</span></div>
+              <div class="question"><b>设备数据采集网关支持哪些 PLC？</b><span>内容不足，缺品牌型号</span></div>
+            </div>
+          </section>
+          <section class="split">
+            <div class="panel funnel"><div class="panel-head"><h2>转化漏斗</h2></div><div><b>12,480</b><span>访问</span></div><div><b>1,964</b><span>产品页浏览</span></div><div><b>318</b><span>联系页访问</span></div><div><b>42</b><span>有效询盘</span></div></div>
+            <div class="panel"><div class="panel-head"><h2>页面表现排行</h2></div><table><tbody><tr><td>首页</td><td>5,820 PV</td><td>GEO 92</td></tr><tr><td>产品服务</td><td>2,430 PV</td><td>GEO 74</td></tr><tr><td>解决方案</td><td>1,108 PV</td><td>GEO 66</td></tr><tr><td>FAQ</td><td>未发布</td><td>GEO 38</td></tr></tbody></table></div>
+          </section>
+        `);
+      }
+
+      function settingsPage() {
+        return shell(`
+          <section class="settings-grid">
+            <div class="panel">
+              <div class="panel-head"><h2>企业空间</h2><button class="ghost small">编辑</button></div>
+              <div class="company-card"><b>示例智能制造有限公司</b><span>企业版 / 3 个站点 / 8 名成员</span></div>
+              ${progress("AI 生成额度", 64, "mid")}
+              ${progress("GEO 扫描额度", 48, "ok")}
+              ${progress("资料存储空间", 72, "mid")}
+            </div>
+            <div class="panel">
+              <div class="panel-head"><h2>团队成员</h2><button class="primary small">邀请成员</button></div>
+              <table><tbody><tr><td><b>张经理</b><span>管理员</span></td><td>全部权限</td><td>在线</td></tr><tr><td><b>李运营</b><span>内容编辑</span></td><td>编辑/发布</td><td>昨天</td></tr><tr><td><b>王销售</b><span>线索跟进</span></td><td>只读/CRM</td><td>今天</td></tr></tbody></table>
+            </div>
+          </section>
+          <section class="split">
+            <div class="panel plan-card">
+              <div class="panel-head"><h2>当前套餐</h2><span class="pill ok">企业版</span></div>
+              <b class="price">¥3,999 / 月</b>
+              <p>包含 5 个官网、每月 1,000 次 GEO 扫描、20GB 知识库存储、团队权限和发布回滚。</p>
+              <button class="primary">升级套餐</button>
+            </div>
+            <div class="panel integrations">
+              <div class="panel-head"><h2>集成与通知</h2></div>
+              <div><b>企业微信通知</b><span>线索提交后自动推送销售群</span><em>已开启</em></div>
+              <div><b>百度统计</b><span>访问数据同步到分析页</span><em>未连接</em></div>
+              <div><b>飞书审批</b><span>发布前需要主管确认</span><em>可配置</em></div>
+            </div>
+          </section>
+        `);
+      }
+
+      const renderers = { geo: geoPage, pages: pagesPage, knowledge: knowledgePage, publish: publishPage, analytics: analyticsPage, settings: settingsPage };
+      document.getElementById("app").innerHTML = (renderers[current.id] || geoPage)();
+    </script>
+  </body>
+</html>

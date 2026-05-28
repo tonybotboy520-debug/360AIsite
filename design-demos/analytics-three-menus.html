@@ -1,0 +1,693 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>数据分析三类统计设计稿</title>
+    <style>
+      :root {
+        --bg: #f5f7fb;
+        --paper: #ffffff;
+        --ink: #172033;
+        --muted: #667085;
+        --line: #dfe5ee;
+        --soft: #f0f4f8;
+        --blue: #2868d8;
+        --teal: #0f8b8d;
+        --green: #16875f;
+        --amber: #b7791f;
+        --red: #c2413b;
+        --violet: #6957c8;
+        --shadow: 0 16px 38px rgba(31, 45, 61, .08);
+      }
+
+      * { box-sizing: border-box; }
+      html, body { min-height: 100%; }
+      body {
+        margin: 0;
+        color: var(--ink);
+        background: var(--bg);
+        font-family: -apple-system, BlinkMacSystemFont, "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+      }
+      button { font: inherit; cursor: pointer; }
+
+      .shell {
+        min-height: 100vh;
+        padding: 28px;
+      }
+      .workspace {
+        width: min(1180px, 100%);
+        margin: 0 auto;
+      }
+      .topbar {
+        display: flex;
+        justify-content: space-between;
+        gap: 18px;
+        align-items: flex-start;
+        margin-bottom: 18px;
+      }
+      .eyebrow {
+        margin: 0 0 6px;
+        color: var(--teal);
+        font-size: 12px;
+        font-weight: 800;
+      }
+      h1 {
+        margin: 0;
+        font-size: 31px;
+        line-height: 1.18;
+      }
+      .topbar p:last-child {
+        margin: 9px 0 0;
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .toolbar {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+      .ghost,
+      .primary,
+      .tabs button,
+      .switch button,
+      .row-action {
+        min-height: 36px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: white;
+        color: #3b4a60;
+        padding: 0 13px;
+        font-size: 13px;
+        font-weight: 800;
+      }
+      .primary {
+        border-color: var(--blue);
+        background: var(--blue);
+        color: white;
+      }
+
+      .tabs {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        margin-bottom: 14px;
+      }
+      .tabs button {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-height: 82px;
+        padding: 14px;
+        text-align: left;
+        overflow: hidden;
+      }
+      .tabs button:before {
+        content: "";
+        width: 34px;
+        height: 34px;
+        flex: 0 0 auto;
+        border-radius: 10px;
+        background: #eaf1ff;
+      }
+      .tabs button[data-view="geo"]:before { background: #e8f6ef; }
+      .tabs button[data-view="seo"]:before { background: #fff4df; }
+      .tabs strong,
+      .tabs span {
+        display: block;
+      }
+      .tabs strong { font-size: 16px; }
+      .tabs span {
+        margin-top: 5px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .tabs button.active {
+        color: var(--blue);
+        border-color: rgba(40, 104, 216, .32);
+        box-shadow: var(--shadow);
+      }
+      .tabs button.active:after {
+        content: "";
+        position: absolute;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        height: 3px;
+        background: var(--blue);
+      }
+
+      .view { display: none; }
+      .view.active { display: block; }
+      .card,
+      .panel {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--paper);
+        box-shadow: var(--shadow);
+      }
+      .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+      .card {
+        min-height: 116px;
+        padding: 15px;
+        border-top: 3px solid var(--blue);
+      }
+      .card.green { border-top-color: var(--green); }
+      .card.amber { border-top-color: var(--amber); }
+      .card.red { border-top-color: var(--red); }
+      .card.violet { border-top-color: var(--violet); }
+      .card span,
+      .card small {
+        display: block;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .card b {
+        display: block;
+        margin: 13px 0 8px;
+        font-size: 25px;
+        line-height: 1.1;
+      }
+
+      .grid-2 {
+        display: grid;
+        grid-template-columns: minmax(0, 1.25fr) minmax(320px, .75fr);
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+      .grid-3 {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+      .panel { padding: 16px; }
+      .panel-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 14px;
+      }
+      .panel-head span {
+        display: block;
+        color: var(--teal);
+        font-size: 12px;
+        font-weight: 800;
+      }
+      .panel-head h2 {
+        margin: 5px 0 0;
+        font-size: 17px;
+        line-height: 1.25;
+      }
+      .switch {
+        display: flex;
+        gap: 4px;
+        padding: 4px;
+        border-radius: 8px;
+        background: var(--soft);
+      }
+      .switch button {
+        min-height: 28px;
+        border: 0;
+        background: transparent;
+        padding: 0 10px;
+      }
+      .switch button.active {
+        color: var(--blue);
+        background: white;
+      }
+
+      .line-chart {
+        height: 240px;
+      }
+      .line-chart svg {
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+      .grid-line {
+        stroke: #e8edf4;
+        stroke-width: 1;
+      }
+      .area { fill: rgba(40, 104, 216, .11); }
+      .line-main,
+      .line-sub {
+        fill: none;
+        stroke-linecap: round;
+      }
+      .line-main {
+        stroke: var(--blue);
+        stroke-width: 4;
+      }
+      .line-sub {
+        stroke: var(--teal);
+        stroke-width: 3;
+        opacity: .75;
+      }
+
+      .source-list {
+        display: grid;
+        gap: 10px;
+      }
+      .source-item,
+      .score-rule,
+      .issue {
+        padding: 12px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fbfdff;
+      }
+      .source-item {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 70px;
+        gap: 8px;
+        align-items: center;
+      }
+      .source-item b,
+      .source-item span,
+      .score-rule b,
+      .score-rule span,
+      .issue b,
+      .issue span {
+        display: block;
+      }
+      .source-item span,
+      .score-rule span,
+      .issue span {
+        margin-top: 5px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .source-item i {
+        display: block;
+        height: 8px;
+        border-radius: 999px;
+        background: var(--blue);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+      }
+      th {
+        color: var(--muted);
+        font-size: 12px;
+        text-align: left;
+      }
+      th, td {
+        padding: 11px 9px;
+        border-bottom: 1px solid var(--line);
+        white-space: nowrap;
+      }
+      td b,
+      td span {
+        display: block;
+      }
+      td span {
+        margin-top: 3px;
+        color: var(--muted);
+        font-size: 11px;
+      }
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 38px;
+        min-height: 24px;
+        padding: 0 8px;
+        border-radius: 8px;
+        font-style: normal;
+        font-weight: 800;
+      }
+      .ok { color: var(--green); background: #e8f6ef; }
+      .mid { color: var(--amber); background: #fff4df; }
+      .bad { color: var(--red); background: #fdeceb; }
+
+      .geo-score-wrap {
+        display: grid;
+        grid-template-columns: 172px minmax(0, 1fr);
+        gap: 18px;
+        align-items: center;
+      }
+      .meter {
+        position: relative;
+        display: grid;
+        place-items: center;
+        width: 172px;
+        height: 172px;
+        border-radius: 50%;
+        background: conic-gradient(var(--green) 302deg, #e8edf4 0);
+      }
+      .meter:after {
+        content: "";
+        position: absolute;
+        inset: 15px;
+        border-radius: 50%;
+        background: white;
+      }
+      .meter b,
+      .meter span {
+        position: relative;
+        z-index: 1;
+        display: block;
+        text-align: center;
+      }
+      .meter b { font-size: 36px; }
+      .meter span {
+        margin-top: 4px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .score-rules {
+        display: grid;
+        gap: 9px;
+      }
+      .score-rule {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 54px;
+        gap: 10px;
+        align-items: center;
+      }
+      .bar {
+        height: 8px;
+        margin-top: 8px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: #e7edf5;
+      }
+      .bar i {
+        display: block;
+        height: 100%;
+        border-radius: inherit;
+        background: var(--green);
+      }
+
+      .geo-note {
+        display: grid;
+        grid-template-columns: 34px minmax(0, 1fr);
+        gap: 10px;
+        align-items: start;
+        margin-bottom: 12px;
+        padding: 12px;
+        border: 1px solid #dbe8ff;
+        border-radius: 8px;
+        background: #f6f9ff;
+      }
+      .geo-note strong {
+        display: grid;
+        place-items: center;
+        width: 34px;
+        height: 34px;
+        border-radius: 9px;
+        color: var(--blue);
+        background: #eaf1ff;
+      }
+      .geo-note b,
+      .geo-note span {
+        display: block;
+      }
+      .geo-note span {
+        margin-top: 4px;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.55;
+      }
+
+      .keyword-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 9px;
+      }
+      .keyword {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 68px 68px 68px;
+        gap: 8px;
+        align-items: center;
+        padding: 11px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fbfdff;
+      }
+      .keyword b,
+      .keyword span {
+        display: block;
+      }
+      .keyword span {
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .issue {
+        display: grid;
+        grid-template-columns: 68px minmax(0, 1fr) 76px;
+        gap: 10px;
+        align-items: center;
+      }
+      .tag {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 28px;
+        border-radius: 8px;
+        color: var(--blue);
+        background: #eaf1ff;
+        font-size: 12px;
+        font-weight: 800;
+      }
+      .tag.geo { color: var(--green); background: #e8f6ef; }
+      .tag.seo { color: var(--amber); background: #fff4df; }
+      .row-action {
+        color: var(--blue);
+        min-height: 32px;
+      }
+
+      @media (max-width: 980px) {
+        .tabs,
+        .summary-grid,
+        .grid-2,
+        .grid-3,
+        .geo-score-wrap {
+          grid-template-columns: 1fr;
+        }
+        .topbar { display: grid; }
+        .toolbar { justify-content: flex-start; }
+      }
+
+      @media (max-width: 640px) {
+        .shell { padding: 16px; }
+        h1 { font-size: 27px; }
+        .panel { overflow-x: auto; }
+        table { min-width: 680px; }
+        .keyword,
+        .issue,
+        .score-rule {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <section class="workspace">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">数据分析设计稿</p>
+            <h1>三类统计入口</h1>
+            <p>先把分析页拆成访问统计、GEO 统计、SEO 统计三块，每块只放最基础、最容易理解的结果。</p>
+          </div>
+          <div class="toolbar">
+            <button class="ghost" type="button">近 30 天</button>
+            <button class="ghost" type="button">导出</button>
+            <button class="primary" type="button">生成优化建议</button>
+          </div>
+        </header>
+
+        <nav class="tabs" aria-label="统计类型">
+          <button class="active" data-view="traffic" type="button">
+            <div><strong>访问统计</strong><span>PV、UV、来源、页面浏览</span></div>
+          </button>
+          <button data-view="geo" type="button">
+            <div><strong>GEO 统计</strong><span>页面 GEO 分数、可抓取性、内容覆盖</span></div>
+          </button>
+          <button data-view="seo" type="button">
+            <div><strong>SEO 统计</strong><span>展现、点击、排名、收录问题</span></div>
+          </button>
+        </nav>
+
+        <section class="view active" id="traffic">
+          <div class="summary-grid">
+            <article class="card"><span>PV</span><b>12,480</b><small>页面浏览量，环比 +18%</small></article>
+            <article class="card green"><span>UV</span><b>4,862</b><small>独立访客，环比 +11%</small></article>
+            <article class="card amber"><span>访问次数</span><b>6,438</b><small>平均每人 1.32 次访问</small></article>
+            <article class="card red"><span>跳出率</span><b>48%</b><small>产品页偏高，需要关注</small></article>
+          </div>
+
+          <div class="grid-2">
+            <article class="panel">
+              <div class="panel-head">
+                <div><span>访问趋势</span><h2>PV / UV 日趋势</h2></div>
+                <div class="switch"><button class="active" type="button">日</button><button type="button">周</button><button type="button">月</button></div>
+              </div>
+              <div class="line-chart">
+                <svg viewBox="0 0 620 220" aria-label="PV UV 趋势图">
+                  <path class="grid-line" d="M0 42H620M0 96H620M0 150H620M0 204H620" />
+                  <path class="area" d="M0 174C42 154 62 160 98 136C137 110 162 128 200 104C240 80 275 94 310 74C350 50 386 74 424 58C462 42 500 62 536 44C574 26 594 34 620 20V220H0Z" />
+                  <path class="line-main" d="M0 174C42 154 62 160 98 136C137 110 162 128 200 104C240 80 275 94 310 74C350 50 386 74 424 58C462 42 500 62 536 44C574 26 594 34 620 20" />
+                  <path class="line-sub" d="M0 190C52 178 74 184 116 164C158 146 184 154 222 136C262 114 296 130 334 108C374 88 410 104 452 88C498 70 530 82 568 62C594 48 608 50 620 42" />
+                </svg>
+              </div>
+            </article>
+
+            <article class="panel">
+              <div class="panel-head">
+                <div><span>访问来源</span><h2>基础来源分布</h2></div>
+              </div>
+              <div class="source-list">
+                <div class="source-item"><div><b>搜索引擎</b><span>百度、Google、360、Bing</span><i style="width: 68%"></i></div><b>42%</b></div>
+                <div class="source-item"><div><b>直接访问</b><span>输入网址、收藏夹</span><i style="width: 31%"></i></div><b>19%</b></div>
+                <div class="source-item"><div><b>AI 推荐</b><span>AI 问答跳转或引用链接</span><i style="width: 34%"></i></div><b>21%</b></div>
+                <div class="source-item"><div><b>外链 / 私域</b><span>公众号、名片、朋友圈、合作站</span><i style="width: 28%"></i></div><b>18%</b></div>
+              </div>
+            </article>
+          </div>
+
+          <article class="panel">
+            <div class="panel-head">
+              <div><span>页面维度</span><h2>页面访问统计</h2></div>
+            </div>
+            <table>
+              <thead><tr><th>页面</th><th>PV</th><th>UV</th><th>平均停留</th><th>跳出率</th><th>转化</th></tr></thead>
+              <tbody>
+                <tr><td><b>首页</b><span>/</span></td><td>5,820</td><td>2,416</td><td>1分42秒</td><td>42%</td><td>18</td></tr>
+                <tr><td><b>产品服务</b><span>/products</span></td><td>2,430</td><td>1,106</td><td>1分08秒</td><td>61%</td><td>9</td></tr>
+                <tr><td><b>解决方案</b><span>/solutions</span></td><td>1,108</td><td>624</td><td>1分21秒</td><td>56%</td><td>6</td></tr>
+                <tr><td><b>联系我们</b><span>/contact</span></td><td>618</td><td>402</td><td>42秒</td><td>37%</td><td>42</td></tr>
+              </tbody>
+            </table>
+          </article>
+        </section>
+
+        <section class="view" id="geo">
+          <div class="geo-note">
+            <strong>G</strong>
+            <div>
+              <b>建议先把 GEO 统计做成“页面评分”</b>
+              <span>AI 是否真实引用、提及某个页面，很多时候不稳定也不容易完整抓取。设计上先展示每个页面的 GEO 优化分数，再逐步接入 AI Bot 抓取、AI 问答测试和引用监测。</span>
+            </div>
+          </div>
+
+          <div class="summary-grid">
+            <article class="card green"><span>GEO 总分</span><b>82</b><small>全站页面平均分</small></article>
+            <article class="card"><span>已评分页面</span><b>32 / 36</b><small>还有 4 个页面待扫描</small></article>
+            <article class="card amber"><span>低分页面</span><b>6</b><small>低于 70 分，优先处理</small></article>
+            <article class="card violet"><span>AI Bot 抓取</span><b>186</b><small>可作为辅助观察指标</small></article>
+          </div>
+
+          <div class="grid-2">
+            <article class="panel">
+              <div class="panel-head">
+                <div><span>评分模型</span><h2>GEO 页面评分规则</h2></div>
+              </div>
+              <div class="geo-score-wrap">
+                <div class="meter"><div><b>84</b><span>产品页 GEO 分</span></div></div>
+                <div class="score-rules">
+                  <div class="score-rule"><div><b>可抓取性 25%</b><span>页面可被 AI Bot 和搜索引擎读取</span><div class="bar"><i style="width: 88%"></i></div></div><em class="pill ok">22</em></div>
+                  <div class="score-rule"><div><b>问答覆盖 25%</b><span>是否覆盖采购、选型、价格、交付、售后问题</span><div class="bar"><i style="width: 72%"></i></div></div><em class="pill mid">18</em></div>
+                  <div class="score-rule"><div><b>品牌实体 20%</b><span>企业名称、产品、行业、地区描述是否清晰</span><div class="bar"><i style="width: 85%"></i></div></div><em class="pill ok">17</em></div>
+                  <div class="score-rule"><div><b>结构化内容 20%</b><span>FAQ、Schema、参数表、摘要是否完整</span><div class="bar"><i style="width: 70%"></i></div></div><em class="pill mid">14</em></div>
+                  <div class="score-rule"><div><b>可信证据 10%</b><span>案例、资质、客户、真实图片是否支撑答案</span><div class="bar"><i style="width: 66%"></i></div></div><em class="pill mid">7</em></div>
+                </div>
+              </div>
+            </article>
+
+            <article class="panel">
+              <div class="panel-head">
+                <div><span>页面排行</span><h2>GEO 分数分布</h2></div>
+              </div>
+              <table>
+                <thead><tr><th>页面</th><th>分数</th><th>主要短板</th></tr></thead>
+                <tbody>
+                  <tr><td><b>首页</b><span>/</span></td><td><em class="pill ok">92</em></td><td>可继续补案例摘要</td></tr>
+                  <tr><td><b>产品服务</b><span>/products</span></td><td><em class="pill mid">74</em></td><td>缺参数和 FAQ</td></tr>
+                  <tr><td><b>解决方案</b><span>/solutions</span></td><td><em class="pill mid">66</em></td><td>场景问题覆盖不足</td></tr>
+                  <tr><td><b>FAQ</b><span>未发布</span></td><td><em class="pill bad">38</em></td><td>需要创建页面</td></tr>
+                </tbody>
+              </table>
+            </article>
+          </div>
+
+          <article class="panel">
+            <div class="panel-head">
+              <div><span>待优化问题</span><h2>按 GEO 分数生成的页面动作</h2></div>
+            </div>
+            <div class="issue"><span class="tag geo">GEO</span><div><b>产品服务页补充“支持哪些 PLC、协议、设备型号”</b><span>对应问答覆盖和结构化内容，预计 +8 分。</span></div><button class="row-action" type="button">处理</button></div>
+            <div class="issue"><span class="tag geo">GEO</span><div><b>解决方案页增加“典型工况 + 案例结果 + 可引用摘要”</b><span>对应可信证据和品牌实体，预计 +7 分。</span></div><button class="row-action" type="button">处理</button></div>
+          </article>
+        </section>
+
+        <section class="view" id="seo">
+          <div class="summary-grid">
+            <article class="card"><span>搜索展现</span><b>18,620</b><small>来自搜索结果页曝光</small></article>
+            <article class="card green"><span>搜索点击</span><b>932</b><small>自然搜索点击量</small></article>
+            <article class="card amber"><span>CTR</span><b>5.0%</b><small>点击率，标题可优化</small></article>
+            <article class="card violet"><span>平均排名</span><b>12.4</b><small>产品词仍在第二页附近</small></article>
+          </div>
+
+          <div class="grid-2">
+            <article class="panel">
+              <div class="panel-head">
+                <div><span>搜索表现</span><h2>关键词基础统计</h2></div>
+              </div>
+              <div class="keyword-grid">
+                <div class="keyword"><div><b>工业视觉检测系统</b><span>产品词</span></div><b>3,420</b><span>展现</span><b>Top 12</b></div>
+                <div class="keyword"><div><b>自动化产线改造</b><span>方案词</span></div><b>2,186</b><span>展现</span><b>Top 18</b></div>
+                <div class="keyword"><div><b>设备数据采集网关</b><span>产品词</span></div><b>1,642</b><span>展现</span><b>Top 9</b></div>
+                <div class="keyword"><div><b>智能制造解决方案</b><span>行业词</span></div><b>1,208</b><span>展现</span><b>Top 24</b></div>
+              </div>
+            </article>
+
+            <article class="panel">
+              <div class="panel-head">
+                <div><span>收录情况</span><h2>页面收录统计</h2></div>
+              </div>
+              <div class="source-list">
+                <div class="source-item"><div><b>已收录页面</b><span>搜索引擎可展示的页面</span><i style="width: 67%"></i></div><b>24 / 36</b></div>
+                <div class="source-item"><div><b>Sitemap 提交</b><span>sitemap.xml 正常生成</span><i style="width: 100%"></i></div><b>正常</b></div>
+                <div class="source-item"><div><b>robots.txt</b><span>未阻止核心页面抓取</span><i style="width: 100%"></i></div><b>正常</b></div>
+                <div class="source-item"><div><b>未收录重点页</b><span>产品服务、案例、FAQ 需关注</span><i style="width: 36%"></i></div><b>3</b></div>
+              </div>
+            </article>
+          </div>
+
+          <article class="panel">
+            <div class="panel-head">
+              <div><span>SEO 问题</span><h2>基础页面健康检查</h2></div>
+            </div>
+            <div class="issue"><span class="tag seo">SEO</span><div><b>8 个页面 Title 重复</b><span>影响搜索结果识别，建议按页面主题生成唯一标题。</span></div><button class="row-action" type="button">处理</button></div>
+            <div class="issue"><span class="tag seo">SEO</span><div><b>11 张图片缺少 alt</b><span>影响图片理解和页面语义，建议自动补充产品或场景描述。</span></div><button class="row-action" type="button">处理</button></div>
+            <div class="issue"><span class="tag seo">SEO</span><div><b>FAQ 页面未发布</b><span>影响长尾问题词覆盖，也会影响 GEO 问答覆盖。</span></div><button class="row-action" type="button">处理</button></div>
+          </article>
+        </section>
+      </section>
+    </main>
+
+    <script>
+      const buttons = Array.from(document.querySelectorAll(".tabs button"));
+      const views = Array.from(document.querySelectorAll(".view"));
+      buttons.forEach(button => {
+        button.addEventListener("click", () => {
+          buttons.forEach(item => item.classList.toggle("active", item === button));
+          views.forEach(view => view.classList.toggle("active", view.id === button.dataset.view));
+        });
+      });
+    </script>
+  </body>
+</html>

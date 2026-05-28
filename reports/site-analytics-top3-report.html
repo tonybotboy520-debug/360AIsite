@@ -1,0 +1,546 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>国内站点统计 TOP3 产品调研报告</title>
+    <style>
+      :root {
+        --bg: #f4f6fb;
+        --paper: #ffffff;
+        --ink: #172033;
+        --muted: #667085;
+        --line: #dfe5ee;
+        --blue: #2868d8;
+        --green: #16875f;
+        --amber: #b7791f;
+        --red: #c2413b;
+        --cyan: #0f8b8d;
+        --shadow: 0 16px 38px rgba(31, 45, 61, .08);
+      }
+
+      * { box-sizing: border-box; }
+      html, body { min-height: 100%; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: -apple-system, BlinkMacSystemFont, "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+      }
+      a { color: var(--blue); text-decoration: none; }
+      .page {
+        width: min(1180px, calc(100vw - 40px));
+        margin: 0 auto;
+        padding: 34px 0 60px;
+      }
+      .hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 310px;
+        gap: 18px;
+        align-items: stretch;
+        margin-bottom: 18px;
+      }
+      .hero-main,
+      .method-card,
+      .panel,
+      .rank-card {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--paper);
+        box-shadow: var(--shadow);
+      }
+      .hero-main {
+        padding: 26px;
+      }
+      .eyebrow {
+        margin: 0 0 8px;
+        color: var(--cyan);
+        font-size: 12px;
+        font-weight: 800;
+      }
+      h1 {
+        margin: 0;
+        font-size: 32px;
+        line-height: 1.2;
+      }
+      .hero-main p {
+        max-width: 760px;
+        margin: 12px 0 0;
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.8;
+      }
+      .method-card {
+        padding: 18px;
+      }
+      .method-card b,
+      .method-card span {
+        display: block;
+      }
+      .method-card b { font-size: 15px; }
+      .method-card span {
+        margin-top: 8px;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.7;
+      }
+
+      .rank-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        margin-bottom: 18px;
+      }
+      .rank-card {
+        position: relative;
+        min-height: 160px;
+        padding: 16px;
+        overflow: hidden;
+        border-top: 4px solid var(--blue);
+      }
+      .rank-card:nth-child(2) { border-top-color: var(--green); }
+      .rank-card:nth-child(3) { border-top-color: var(--amber); }
+      .rank-card small {
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .rank-card h2 {
+        margin: 10px 0 8px;
+        font-size: 21px;
+      }
+      .rank-card strong {
+        display: block;
+        margin: 0 0 8px;
+        font-size: 25px;
+      }
+      .rank-card p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.65;
+      }
+
+      .panel {
+        padding: 18px;
+        margin-bottom: 14px;
+      }
+      .panel-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 14px;
+        margin-bottom: 14px;
+      }
+      .panel-head h2 {
+        margin: 4px 0 0;
+        font-size: 20px;
+      }
+      .panel-head p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .tag {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 28px;
+        padding: 0 10px;
+        border-radius: 8px;
+        background: #eef5ff;
+        color: var(--blue);
+        font-size: 12px;
+        font-weight: 800;
+        white-space: nowrap;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+      }
+      th {
+        color: var(--muted);
+        text-align: left;
+        font-size: 12px;
+      }
+      th, td {
+        padding: 12px 10px;
+        border-bottom: 1px solid var(--line);
+        vertical-align: top;
+      }
+      td b,
+      td span {
+        display: block;
+      }
+      td span {
+        margin-top: 4px;
+        color: var(--muted);
+        line-height: 1.6;
+      }
+      .layout-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+      }
+      .layout-card {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 14px;
+        background: #fbfdff;
+      }
+      .layout-card h3 {
+        margin: 0 0 10px;
+        font-size: 15px;
+      }
+      .layout-card ul,
+      .source-list {
+        margin: 0;
+        padding-left: 18px;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.8;
+      }
+      .insight-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+      .insight {
+        border-left: 3px solid var(--blue);
+        border-radius: 10px;
+        padding: 13px 14px;
+        background: #fbfdff;
+      }
+      .insight:nth-child(2) { border-left-color: var(--green); }
+      .insight:nth-child(3) { border-left-color: var(--amber); }
+      .insight:nth-child(4) { border-left-color: var(--red); }
+      .insight b,
+      .insight span {
+        display: block;
+      }
+      .insight span {
+        margin-top: 6px;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.7;
+      }
+      .recommendation {
+        display: grid;
+        grid-template-columns: 220px minmax(0, 1fr);
+        gap: 12px;
+      }
+      .rec-nav,
+      .rec-body {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: #fbfdff;
+      }
+      .rec-nav {
+        padding: 10px;
+      }
+      .rec-nav div {
+        padding: 10px 11px;
+        border-radius: 8px;
+        color: #475467;
+        font-weight: 800;
+        font-size: 13px;
+      }
+      .rec-nav div:first-child {
+        color: var(--blue);
+        background: #eef5ff;
+      }
+      .rec-body {
+        padding: 14px;
+      }
+      .rec-kpis {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+        margin-bottom: 12px;
+      }
+      .rec-kpis div {
+        border: 1px solid var(--line);
+        border-top: 3px solid var(--blue);
+        border-radius: 9px;
+        padding: 12px;
+        background: white;
+      }
+      .rec-kpis span,
+      .rec-kpis small {
+        display: block;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .rec-kpis b {
+        display: block;
+        margin: 8px 0;
+        font-size: 20px;
+      }
+      .rec-chart {
+        min-height: 160px;
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        background:
+          linear-gradient(180deg, transparent 24%, #e9eef5 25%, transparent 26%, transparent 49%, #e9eef5 50%, transparent 51%, transparent 74%, #e9eef5 75%, transparent 76%),
+          linear-gradient(135deg, rgba(40,104,216,.08), rgba(15,139,141,.08));
+        padding: 14px;
+      }
+      .rec-chart svg {
+        width: 100%;
+        height: 130px;
+        display: block;
+      }
+      .sources {
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.8;
+      }
+      @media (max-width: 900px) {
+        .hero,
+        .rank-grid,
+        .layout-grid,
+        .insight-grid,
+        .recommendation,
+        .rec-kpis {
+          grid-template-columns: 1fr;
+        }
+        .page { width: min(100vw - 24px, 1180px); }
+        table { min-width: 860px; }
+        .panel.table-wrap { overflow-x: auto; }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <section class="hero">
+        <article class="hero-main">
+          <p class="eyebrow">调研报告 · 2026-05-28</p>
+          <h1>国内站点统计 TOP3 产品与核心报表形态调研</h1>
+          <p>本报告面向“360智网后台”的访问统计页面设计，梳理国内常见站点统计工具的使用排名、核心报表页面、指标组织方式和可借鉴布局。排名采用可公开核验的第三方安装量/使用量口径，不能等同于收入、活跃客户数或官方市场份额。</p>
+        </article>
+        <aside class="method-card">
+          <b>排名口径</b>
+          <span>以 BuiltWith 对中国站点 Web Analytics 技术的可检测安装量作为主要参考，并只统计国内站点统计产品。由此得到：百度统计、51.LA、CNZZ/友盟+ U-Web。</span>
+        </aside>
+      </section>
+
+      <section class="rank-grid">
+        <article class="rank-card">
+          <small>TOP 1</small>
+          <h2>百度统计</h2>
+          <strong>约 1,788,231 站点</strong>
+          <p>国内覆盖量最高。产品定位偏“流量分析 + 用户行为 + 转化监控”，适合作为我们访问统计页面的主要参考。</p>
+        </article>
+        <article class="rank-card">
+          <small>TOP 2</small>
+          <h2>51.LA</h2>
+          <strong>约 374,091 站点</strong>
+          <p>老牌站长统计工具，强调实时访客、页面流量、来源、蜘蛛爬虫、热力图等站长常用视角。</p>
+        </article>
+        <article class="rank-card">
+          <small>TOP 3</small>
+          <h2>CNZZ / 友盟+ U-Web</h2>
+          <strong>约 245,747 站点</strong>
+          <p>老牌网站统计体系，常见于站长、资讯、内容站。典型结构是趋势、来源、页面、访客、转化和事件。</p>
+        </article>
+      </section>
+
+      <section class="panel table-wrap">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow">核心页面</p>
+            <h2>TOP3 站点统计产品的核心报表页面</h2>
+          </div>
+          <span class="tag">共性提炼</span>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>产品</th>
+              <th>最核心页面</th>
+              <th>常见统计内容</th>
+              <th>页面风格与排布</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><b>百度统计</b><span>TOP 1</span></td>
+              <td>
+                <b>概况 / 趋势分析</b><span>站点概览、PV、UV、IP、访问次数、跳出率、平均访问时长。</span>
+                <b>来源分析</b><span>搜索引擎、外部链接、直接访问、推广来源、搜索词。</span>
+                <b>页面分析</b><span>受访页面、入口页、退出页、页面上下游、页面停留。</span>
+                <b>实时访客 / 访问明细</b><span>实时在线、访问轨迹、地域、设备、来源。</span>
+              </td>
+              <td>PV、UV、IP、访问次数、新访客、跳出率、平均停留、转化目标、来源分布、搜索词、页面排行、地域设备。</td>
+              <td>偏企业级 SaaS 报表：左侧功能菜单，顶部时间筛选，首屏 KPI 卡片，下面是趋势折线图和明细表。视觉克制、蓝白为主。</td>
+            </tr>
+            <tr>
+              <td><b>51.LA</b><span>TOP 2</span></td>
+              <td>
+                <b>网站概况</b><span>PV、UV、IP、访问次数、实时访客。</span>
+                <b>实时访客</b><span>访客来源、访问页面、地域、设备、访问轨迹。</span>
+                <b>来源 / 页面统计</b><span>来源排行、搜索词、热门页面、入口页、离开页。</span>
+                <b>站长增强功能</b><span>蜘蛛爬虫、热力图、页面阅读深度。</span>
+              </td>
+              <td>实时访问、今日/昨日对比、PV、UV、IP、来源、关键词、页面、地域、设备、搜索引擎蜘蛛、热力图。</td>
+              <td>更偏站长工具：信息密度高、指标直接、常用“今日/昨日/最近几天”快速对比；实时和蜘蛛类数据权重高。</td>
+            </tr>
+            <tr>
+              <td><b>CNZZ / 友盟+ U-Web</b><span>TOP 3</span></td>
+              <td>
+                <b>趋势分析</b><span>访问量趋势、访客趋势、访问质量。</span>
+                <b>来源统计</b><span>搜索引擎、搜索词、外部链接、直接访问。</span>
+                <b>页面统计</b><span>受访页面、入口页、退出页。</span>
+                <b>事件 / 转化</b><span>自定义事件、转化路径、目标转化。</span>
+              </td>
+              <td>PV、UV、IP、访问次数、来源、搜索词、页面排行、地域、设备、事件、转化目标、广告效果。</td>
+              <td>传统后台报表风格：模块分组清晰，偏表格和趋势图，适合运营人员按菜单逐项钻取。</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow">页面布局</p>
+            <h2>核心报表的通用布局模式</h2>
+          </div>
+          <span class="tag">可直接借鉴</span>
+        </div>
+        <div class="layout-grid">
+          <article class="layout-card">
+            <h3>1. 概况页 / 总览页</h3>
+            <ul>
+              <li>顶部时间筛选：今日、昨日、近 7 天、近 30 天、自定义。</li>
+              <li>首屏指标卡：PV、UV、IP、访问次数、跳出率、平均停留。</li>
+              <li>中部趋势图：按日、按周、按月切换。</li>
+              <li>底部排行榜：来源、页面、地域、设备。</li>
+            </ul>
+          </article>
+          <article class="layout-card">
+            <h3>2. 来源分析页</h3>
+            <ul>
+              <li>先给来源总览：搜索、直接、外链、推广、AI 推荐。</li>
+              <li>再给来源趋势：来源随时间变化。</li>
+              <li>最后给明细表：来源名称、PV、UV、转化、跳出率。</li>
+              <li>搜索来源下钻：搜索引擎、关键词、落地页。</li>
+            </ul>
+          </article>
+          <article class="layout-card">
+            <h3>3. 页面分析页</h3>
+            <ul>
+              <li>页面排行：受访页面、入口页面、退出页面。</li>
+              <li>页面指标：PV、UV、平均停留、跳出率、转化。</li>
+              <li>页面趋势：每个页面在当前周期内的升降趋势。</li>
+              <li>可补充页面路径：上一页、下一页、访问链路。</li>
+            </ul>
+          </article>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow">指标内容</p>
+            <h2>访问统计页面建议保留的基础指标</h2>
+          </div>
+          <span class="tag">不要过重</span>
+        </div>
+        <div class="insight-grid">
+          <article class="insight">
+            <b>基础流量</b>
+            <span>PV、UV、IP、访问次数、新访客、回访客。适合放在首屏卡片，默认看近 7 天。</span>
+          </article>
+          <article class="insight">
+            <b>访问质量</b>
+            <span>跳出率、平均访问时长、平均访问页数、页面停留。适合判断“有人来但是否有效”。</span>
+          </article>
+          <article class="insight">
+            <b>来源构成</b>
+            <span>搜索引擎、直接访问、外部链接、私域入口、AI 推荐。这里可以为 360智网保留 AI 推荐来源。</span>
+          </article>
+          <article class="insight">
+            <b>页面表现</b>
+            <span>受访页面、入口页、退出页、页面 PV/UV、跳出率、转化数、周期趋势。适合直接指导页面优化。</span>
+          </article>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow">落地建议</p>
+            <h2>360智网访问统计页推荐结构</h2>
+          </div>
+          <span class="tag">结合 TOP3 优点</span>
+        </div>
+        <div class="recommendation">
+          <div class="rec-nav">
+            <div>访问统计</div>
+            <div>GEO 统计</div>
+            <div>SEO 统计</div>
+          </div>
+          <div class="rec-body">
+            <div class="rec-kpis">
+              <div><span>PV</span><b>12,480</b><small>近 7 天 +18%</small></div>
+              <div><span>UV</span><b>4,862</b><small>近 7 天 +11%</small></div>
+              <div><span>访问次数</span><b>6,438</b><small>人均 1.32 次</small></div>
+              <div><span>跳出率</span><b>48%</b><small>产品页偏高</small></div>
+            </div>
+            <div class="rec-chart">
+              <svg viewBox="0 0 600 130" aria-label="推荐布局示意图">
+                <path d="M0 105C45 90 66 93 103 74C142 55 164 65 202 47C246 27 270 43 310 30C354 16 388 29 427 22C471 14 508 26 548 15C575 8 590 10 600 4" fill="none" stroke="#2868d8" stroke-width="5" stroke-linecap="round" />
+                <path d="M0 118C48 104 71 106 112 90C154 74 180 80 220 64C260 49 294 62 334 48C374 35 412 45 454 34C502 21 534 29 572 17C588 12 596 12 600 10" fill="none" stroke="#0f8b8d" stroke-width="4" stroke-linecap="round" opacity=".72" />
+              </svg>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow">结论</p>
+            <h2>对当前访问统计页面的设计判断</h2>
+          </div>
+        </div>
+        <div class="insight-grid">
+          <article class="insight">
+            <b>页面名称建议</b>
+            <span>国内产品更常见“访问统计 / 访问分析 / 流量分析”。为了让客户一眼理解，建议使用“访问统计”。</span>
+          </article>
+          <article class="insight">
+            <b>默认时间建议</b>
+            <span>默认近 7 天，保留近 30 天、自定义日期；趋势图支持按日、按周、按月。</span>
+          </article>
+          <article class="insight">
+            <b>信息密度建议</b>
+            <span>不做复杂归因和高级漏斗，先覆盖概况、趋势、来源、页面排行四类基础能力。</span>
+          </article>
+          <article class="insight">
+            <b>差异化建议</b>
+            <span>在来源构成里保留“AI 推荐”，这能与后面的 GEO 统计自然衔接，是传统统计工具没有强化的部分。</span>
+          </article>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow">参考来源</p>
+            <h2>调研链接</h2>
+          </div>
+        </div>
+        <ul class="source-list">
+          <li><a href="https://trends.builtwith.com/analytics/country/China" target="_blank">BuiltWith Web Analytics Usage Distribution in China</a>：用于判断国内站点统计安装量排名。</li>
+          <li><a href="https://tongji.baidu.com/web/welcome/login" target="_blank">百度统计官网</a>、<a href="https://tongji.baidu.com/holmes/help/article/detail?articleId=396" target="_blank">百度统计帮助中心</a>：用于确认百度统计产品定位与常见统计报表能力。</li>
+          <li><a href="https://www.51.la/" target="_blank">51.LA 官网</a>、<a href="https://web.51.la/" target="_blank">51.LA 统计后台入口</a>：用于确认 51.LA 的实时访客、蜘蛛、热力图、页面阅读深度等能力描述。</li>
+          <li><a href="https://www.umeng.com/" target="_blank">友盟+ 官网</a>、<a href="https://www.umeng.com/page/product/website" target="_blank">友盟+ U-Web 网站统计</a>：用于确认 CNZZ/友盟+ 网站统计的产品方向。</li>
+          <li><a href="https://support.google.com/analytics/answer/12926732" target="_blank">Google Analytics Pages and screens</a>、<a href="https://support.google.com/webmasters/answer/7576553" target="_blank">Google Search Console Performance report</a>：用于补充现代统计报表的通用页面和指标组织方式。</li>
+        </ul>
+        <p class="sources">说明：部分国内统计产品后台需要登录才能查看完整真实界面，本报告基于公开官网、帮助文档、可访问演示/入口页和行业常见统计产品结构进行归纳。</p>
+      </section>
+    </main>
+  </body>
+</html>

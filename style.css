@@ -3718,10 +3718,17 @@ td, th { padding: 13px 10px; border-bottom: 1px solid var(--line); text-align: l
   width: 100%;
   margin: 0 0 2px;
   padding: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
   border: 0;
   border-bottom: 1px solid var(--line);
   border-radius: 0;
   background: transparent;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.analytics-tabs.compact::-webkit-scrollbar {
+  display: none;
 }
 .analytics-tabs.compact button {
   position: relative;
@@ -3758,6 +3765,12 @@ td, th { padding: 13px 10px; border-bottom: 1px solid var(--line); text-align: l
   background: white;
   box-shadow: var(--shadow);
   overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.analytics-subtabs::-webkit-scrollbar {
+  display: none;
 }
 .analytics-subtabs button {
   min-width: 86px;
