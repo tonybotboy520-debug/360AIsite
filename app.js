@@ -1450,7 +1450,6 @@ function renderAnalyticsVisitorFilter() {
       <button type="button">最近7天</button>
       <button type="button">最近30天</button>
       <label><input type="date" value="2026-05-28" /></label>
-      <label class="analytics-check"><input type="checkbox" /> 对比时间段</label>
     </div>
     <div class="analytics-time-group">
       <span>地域</span>
@@ -1474,7 +1473,6 @@ function renderAnalyticsPagesFilter() {
       <button type="button">最近7天</button>
       <button type="button">最近30天</button>
       <label><input type="date" value="2026-05-28" /></label>
-      <label class="analytics-check"><input type="checkbox" /> 对比时间段</label>
     </div>
     <div class="analytics-time-group">
       <span>来源</span>
@@ -1499,7 +1497,6 @@ function renderAnalyticsSourceFilter() {
       <button type="button">最近7天</button>
       <button type="button">最近30天</button>
       <label><input type="date" value="2026-05-28" /></label>
-      <label class="analytics-check"><input type="checkbox" /> 对比时间段</label>
     </div>
     <div class="analytics-time-group">
       <span>设备</span>
@@ -1526,7 +1523,6 @@ function renderAnalyticsTrendFilter() {
       <button class="active" type="button">最近7天</button>
       <button type="button">最近30天</button>
       <label><input type="date" value="2026-05-21" /> 至 <input type="date" value="2026-05-27" /></label>
-      <label class="analytics-check"><input type="checkbox" /> 对比时间段</label>
       <span class="analytics-filter-spacer"></span>
       <button type="button">按时</button>
       <button class="active" type="button">按日</button>
