@@ -32,6 +32,10 @@ const state = {
   analyticsTab: "traffic",
   trafficAnalyticsTab: "overview",
   analyticsTrendMetric: "pv",
+  analyticsTrendCompare: "previous",
+  analyticsPageReportTab: "overview",
+  analyticsVisitorRegionMode: "province",
+  analyticsVisitorEnvDimension: "browser",
   selectedPublishStep: 3,
   generationPhase: 0,
   generationSubphase: "pause",
@@ -78,8 +82,55 @@ const analyticsTrendSeries = {
     max: 800,
     current: [492, 516, 572, 591, 604, 628, 513],
     compare: [462, 488, 540, 562, 570, 590, 482]
+  },
+  bounce: {
+    label: "跳出率",
+    shortLabel: "跳出率",
+    max: 70,
+    unit: "%",
+    current: [52, 49, 47, 46, 48, 45, 47],
+    compare: [55, 53, 51, 49, 50, 48, 49]
   }
 };
+
+const analyticsPageReportTabs = [
+  {
+    id: "overview",
+    label: "指标概览",
+    title: "受访页面",
+    tableTitle: "页面 URL 明细",
+    desc: "按页面 URL 查看访问规模、下游贡献、退出表现和停留时长。",
+    tableDesc: "指标分为网站基础指标和流量质量指标，便于判断页面是否承接住了访问。",
+    tip: "贡献下游浏览量高的页面，适合作为监测页面继续查看上下游路径；退出页次数高的页面，需要结合来源和访客类型判断是自然结束还是承接失败。"
+  },
+  {
+    id: "value",
+    label: "页面价值分析",
+    title: "页面价值分析",
+    tableTitle: "页面价值明细",
+    desc: "重点看页面带来的后续浏览和停留质量，筛出真正能继续承接访问的页面。",
+    tableDesc: "按贡献下游浏览量、停留时长和退出表现评估页面价值。",
+    tip: "下游贡献高且停留长的页面适合强化 CTA；浏览量高但下游贡献低的页面，需要检查推荐入口和下一步路径。"
+  },
+  {
+    id: "entry",
+    label: "入口页分析",
+    title: "入口页分析",
+    tableTitle: "入口页明细",
+    desc: "识别用户最常进入网站的页面，判断首屏承接、来源匹配和后续路径是否顺畅。",
+    tableDesc: "入口页需要同时看 UV、下游贡献和退出页次数，避免只按访问量排序。",
+    tip: "入口量高的页面要优先保证首屏信息、加载速度和咨询入口；新访客入口页可以单独对比来源质量。"
+  },
+  {
+    id: "exit",
+    label: "退出页分析",
+    title: "退出页分析",
+    tableTitle: "退出页明细",
+    desc: "观察访问在哪些页面结束，区分正常任务完成和异常流失。",
+    tableDesc: "结合退出页次数、平均停留时长和下游贡献，判断页面是否需要优化承接。",
+    tip: "退出次数高不一定代表问题。联系页、支付页等任务完成页可接受较高退出；产品页、方案页退出高则需要重点排查。"
+  }
+];
 
 const generationSteps = [
   {
@@ -1261,6 +1312,10 @@ function formatCompactNumber(value) {
   return value >= 10000 ? `${(value / 10000).toFixed(value % 10000 === 0 ? 0 : 1)}万` : value.toLocaleString("zh-CN");
 }
 
+function formatAnalyticsValue(series, value) {
+  return series.unit ? `${value}${series.unit}` : formatCompactNumber(value);
+}
+
 function renderTrendPath(points) {
   return points.map((point, index) => `${index === 0 ? "M" : "L"}${point.x.toFixed(1)} ${point.y.toFixed(1)}`).join(" ");
 }
@@ -1292,7 +1347,7 @@ function renderOverviewTrendChart() {
       <g class="analytics-chart-grid">
         ${ticks.map(value => {
           const y = baseline - (value / series.max) * chartHeight;
-          return `<line x1="${left}" y1="${y.toFixed(1)}" x2="${(760 - right).toFixed(1)}" y2="${y.toFixed(1)}"></line><text x="${left - 12}" y="${(y + 4).toFixed(1)}">${formatCompactNumber(value)}</text>`;
+          return `<line x1="${left}" y1="${y.toFixed(1)}" x2="${(760 - right).toFixed(1)}" y2="${y.toFixed(1)}"></line><text x="${left - 12}" y="${(y + 4).toFixed(1)}">${formatAnalyticsValue(series, value)}</text>`;
         }).join("")}
       </g>
       <g class="analytics-chart-axis-lines">
@@ -1365,11 +1420,16 @@ function renderAnalyticsTrafficStats() {
     <nav class="analytics-subtabs" aria-label="访问统计三级导航">
       ${tabs.map(tab => `<button class="${activeTab === tab.id ? "active" : ""}" data-traffic-tab="${tab.id}" type="button">${tab.label}</button>`).join("")}
     </nav>
-    ${renderAnalyticsTimeFilter()}
+    ${renderAnalyticsTimeFilter(activeTab)}
     ${content}`;
 }
 
-function renderAnalyticsTimeFilter() {
+function renderAnalyticsTimeFilter(activeTab = "overview") {
+  if (activeTab === "overview") return renderAnalyticsTrendFilter();
+  if (activeTab === "trend") return renderAnalyticsTrendFilter();
+  if (activeTab === "source") return renderAnalyticsSourceFilter();
+  if (activeTab === "pages") return renderAnalyticsPagesFilter();
+  if (activeTab === "visitor") return renderAnalyticsVisitorFilter();
   return `<section class="analytics-filter-panel">
     <div class="analytics-time-group">
       <span>统计时间</span>
@@ -1377,6 +1437,115 @@ function renderAnalyticsTimeFilter() {
       <button type="button">近 30 天</button>
       <button type="button">自定义</button>
       <label><input type="date" value="2026-05-21" /> 至 <input type="date" value="2026-05-27" /></label>
+    </div>
+  </section>`;
+}
+
+function renderAnalyticsVisitorFilter() {
+  return `<section class="analytics-filter-panel visitor-filter">
+    <div class="analytics-time-group">
+      <span>时间</span>
+      <button class="active" type="button">今天</button>
+      <button type="button">昨天</button>
+      <button type="button">最近7天</button>
+      <button type="button">最近30天</button>
+      <label><input type="date" value="2026-05-28" /></label>
+      <label class="analytics-check"><input type="checkbox" /> 对比时间段</label>
+    </div>
+    <div class="analytics-time-group">
+      <span>地域</span>
+      <button class="active" type="button">全部地域</button>
+      <span>来源</span>
+      <button class="active" type="button">全部来源</button>
+      <span>访客</span>
+      <button class="active" type="button">全部</button>
+      <button type="button">新访客</button>
+      <button type="button">老访客</button>
+    </div>
+  </section>`;
+}
+
+function renderAnalyticsPagesFilter() {
+  return `<section class="analytics-filter-panel pages-filter">
+    <div class="analytics-time-group">
+      <span>时间</span>
+      <button class="active" type="button">今天</button>
+      <button type="button">昨天</button>
+      <button type="button">最近7天</button>
+      <button type="button">最近30天</button>
+      <label><input type="date" value="2026-05-28" /></label>
+      <label class="analytics-check"><input type="checkbox" /> 对比时间段</label>
+    </div>
+    <div class="analytics-time-group">
+      <span>来源</span>
+      <button class="active" type="button">全部来源</button>
+      <span>访客</span>
+      <button class="active" type="button">全部</button>
+      <button type="button">新访客</button>
+      <button type="button">老访客</button>
+      <span>智能屏蔽数据</span>
+      <button class="active" type="button">包含</button>
+      <button type="button">不包含</button>
+    </div>
+  </section>`;
+}
+
+function renderAnalyticsSourceFilter() {
+  return `<section class="analytics-filter-panel source-filter">
+    <div class="analytics-time-group">
+      <span>时间</span>
+      <button class="active" type="button">今天</button>
+      <button type="button">昨天</button>
+      <button type="button">最近7天</button>
+      <button type="button">最近30天</button>
+      <label><input type="date" value="2026-05-28" /></label>
+      <label class="analytics-check"><input type="checkbox" /> 对比时间段</label>
+    </div>
+    <div class="analytics-time-group">
+      <span>设备</span>
+      <button class="active" type="button">全部</button>
+      <button type="button">计算机</button>
+      <button type="button">移动设备</button>
+      <span>访客</span>
+      <button class="active" type="button">全部</button>
+      <button type="button">新访客</button>
+      <button type="button">老访客</button>
+      <span>智能屏蔽数据</span>
+      <button class="active" type="button">包含</button>
+      <button type="button">不包含</button>
+    </div>
+  </section>`;
+}
+
+function renderAnalyticsTrendFilter() {
+  return `<section class="analytics-filter-panel trend-filter">
+    <div class="analytics-time-group trend-time-row">
+      <span>时间</span>
+      <button type="button">今天</button>
+      <button type="button">昨天</button>
+      <button class="active" type="button">最近7天</button>
+      <button type="button">最近30天</button>
+      <label><input type="date" value="2026-05-21" /> 至 <input type="date" value="2026-05-27" /></label>
+      <label class="analytics-check"><input type="checkbox" /> 对比时间段</label>
+      <span class="analytics-filter-spacer"></span>
+      <button type="button">按时</button>
+      <button class="active" type="button">按日</button>
+      <button type="button">按周</button>
+      <button type="button">按月</button>
+    </div>
+    <div class="analytics-time-group trend-filter-row">
+      <span>来源</span>
+      <button class="active" type="button">全部来源</button>
+      <span>设备</span>
+      <button class="active" type="button">全部</button>
+      <button type="button">计算机</button>
+      <button type="button">移动设备</button>
+      <span>地域</span>
+      <button class="active" type="button">全部地域</button>
+      <span>访客</span>
+      <button class="active" type="button">全部</button>
+      <button type="button">新访客</button>
+      <button type="button">老访客</button>
     </div>
   </section>`;
 }
@@ -1392,6 +1561,147 @@ function renderTrafficKpis() {
     </section>`;
 }
 
+function renderTrafficTrendKpis() {
+  return `<section class="analytics-kpi-grid five">
+      <article class="analytics-kpi good"><div class="analytics-kpi-head"><span>PV</span>${trendPill("+18%", "up")}</div><strong>12,480</strong><small>页面浏览量，衡量内容被打开次数。</small></article>
+      <article class="analytics-kpi good"><div class="analytics-kpi-head"><span>UV</span>${trendPill("+11%", "up")}</div><strong>4,862</strong><small>独立访客，衡量真实访问人数。</small></article>
+      <article class="analytics-kpi"><div class="analytics-kpi-head"><span>IP</span>${trendPill("+6%", "up")}</div><strong>3,916</strong><small>独立 IP，辅助识别访问覆盖。</small></article>
+      <article class="analytics-kpi risk"><div class="analytics-kpi-head"><span>跳出率</span>${trendPill("+4%", "down")}</div><strong>48%</strong><small>单页访问占比升高，需要关注入口页质量。</small></article>
+      <article class="analytics-kpi"><div class="analytics-kpi-head"><span>平均停留</span>${trendPill("持平", "flat")}</div><strong>1分26秒</strong><small>较上周期 +12 秒，内容阅读稳定。</small></article>
+    </section>`;
+}
+
+function renderTrafficSourceKpis() {
+  return `<section class="analytics-source-quality">
+      <article class="analytics-quality-card"><span>搜索引擎访客</span><strong>2,146</strong>${trendPill("转化 48", "up")}</article>
+      <article class="analytics-quality-card"><span>外链推荐访客</span><strong>936</strong>${trendPill("跳出 44%", "flat")}</article>
+      <article class="analytics-quality-card"><span>AI 推荐入口</span><strong>418</strong>${trendPill("新增来源", "up")}</article>
+    </section>`;
+}
+
+function renderTrafficPagesKpis() {
+  return `<section class="analytics-kpi-grid five">
+      <article class="analytics-kpi good"><div class="analytics-kpi-head"><span>受访页面数</span>${trendPill("+12%", "up")}</div><strong>86</strong><small>当前周期产生访问的页面。</small></article>
+      <article class="analytics-kpi"><div class="analytics-kpi-head"><span>首页入口占比</span>${trendPill("56%", "flat")}</div><strong>2,103</strong><small>首页仍是主要入口。</small></article>
+      <article class="analytics-kpi warn"><div class="analytics-kpi-head"><span>产品页退出率</span>${trendPill("偏高", "down")}</div><strong>61%</strong><small>/products 需要重点看来源质量。</small></article>
+      <article class="analytics-kpi"><div class="analytics-kpi-head"><span>咨询转化</span>${trendPill("+9", "up")}</div><strong>42</strong><small>/contact 转化效率最佳。</small></article>
+      <article class="analytics-kpi"><div class="analytics-kpi-head"><span>平均停留</span>${trendPill("+12秒", "up")}</div><strong>1分21秒</strong><small>内容阅读表现稳定。</small></article>
+    </section>`;
+}
+
+function renderTrafficVisitorKpis() {
+  return `<section class="analytics-kpi-grid five">
+      <article class="analytics-kpi good"><div class="analytics-kpi-head"><span>在线访客</span>${trendPill("实时", "up")}</div><strong>28</strong><small>最近 5 分钟仍在访问。</small></article>
+      <article class="analytics-kpi"><div class="analytics-kpi-head"><span>新访客</span>${trendPill("+13%", "up")}</div><strong>3,218</strong><small>本周期首次访问用户。</small></article>
+      <article class="analytics-kpi"><div class="analytics-kpi-head"><span>回访客</span>${trendPill("+7%", "up")}</div><strong>1,644</strong><small>品牌关注度保持增长。</small></article>
+      <article class="analytics-kpi warn"><div class="analytics-kpi-head"><span>移动端占比</span>${trendPill("36%", "flat")}</div><strong>1,749</strong><small>移动端体验需要持续关注。</small></article>
+      <article class="analytics-kpi"><div class="analytics-kpi-head"><span>广东访客</span>${trendPill("31%", "up")}</div><strong>1,506</strong><small>核心地域流量集中。</small></article>
+    </section>`;
+}
+
+function renderTrendMetricStrip() {
+  return `<div class="analytics-trend-summary-strip">
+    <div><span>浏览量(PV)</span><strong>12,480</strong><small>页面浏览量</small></div>
+    <div><span>访客数(UV)</span><strong>4,862</strong><small>独立访客</small></div>
+    <div><span>IP数</span><strong>3,916</strong><small>访问覆盖</small></div>
+    <div><span>跳出率</span><strong>48%</strong><small>单页访问占比</small></div>
+    <div><span>平均访问时长</span><strong>00:01:26</strong><small>本周期均值</small></div>
+  </div>`;
+}
+
+function renderTrendMetricSelect(activeTrendMetric) {
+  return `<label class="analytics-trend-select-wrap">指标：
+    <select data-trend-select>
+      ${Object.entries(analyticsTrendSeries).map(([id, item]) => `<option value="${id}" ${activeTrendMetric === id ? "selected" : ""}>${item.label}</option>`).join("")}
+    </select>
+  </label>`;
+}
+
+function renderSourceMetricStrip() {
+  return `<div class="analytics-trend-summary-strip source-summary">
+    <div><span>浏览量(PV)</span><strong>943,461</strong><small>全部来源访问量</small></div>
+    <div><span>访客数(UV)</span><strong>464,875</strong><small>独立访客</small></div>
+    <div><span>IP数</span><strong>455,316</strong><small>访问覆盖</small></div>
+    <div><span>跳出率</span><strong>72.22%</strong><small>当前汇总</small></div>
+    <div><span>平均访问时长</span><strong>00:02:58</strong><small>本周期均值</small></div>
+  </div>`;
+}
+
+function renderPageMetricStrip() {
+  return `<div class="analytics-trend-summary-strip page-summary">
+    <div><span>浏览量(PV)</span><strong>952,359</strong><small>页面总浏览次数</small></div>
+    <div><span>访客数(UV)</span><strong>750,259</strong><small>访问这些页面的人数</small></div>
+    <div><span>贡献下游浏览量</span><strong>198,070</strong><small>继续访问其他页面次数</small></div>
+    <div><span>退出页次数</span><strong>545,169</strong><small>访问在该页结束次数</small></div>
+    <div><span>平均停留时长</span><strong>00:01:40</strong><small>页面阅读质量</small></div>
+  </div>`;
+}
+
+function renderSourceChartPanel() {
+  return `<div class="analytics-source-chart-panel">
+    <div class="analytics-chart-primary-control">
+      <label class="analytics-trend-select-wrap">指标：
+        <select>
+          <option>浏览量(PV)</option>
+          <option>访客数(UV)</option>
+          <option>IP数</option>
+          <option>跳出率</option>
+          <option>平均访问时长</option>
+        </select>
+      </label>
+    </div>
+    <div class="analytics-source-visual-grid">
+      <div class="analytics-source-donut-card">
+        <div class="analytics-source-donut"></div>
+        <div class="analytics-source-donut-labels">
+          <span class="direct">直接访问</span>
+          <span class="search">搜索引擎</span>
+          <span class="referral">外部链接</span>
+          <span class="custom">自定义来源</span>
+        </div>
+      </div>
+      <div class="analytics-source-multi-chart">
+        <svg viewBox="0 0 720 310" role="img" aria-label="全部来源趋势图">
+          <g class="analytics-chart-grid">
+            <line x1="42" y1="36" x2="690" y2="36"></line>
+            <line x1="42" y1="82" x2="690" y2="82"></line>
+            <line x1="42" y1="128" x2="690" y2="128"></line>
+            <line x1="42" y1="174" x2="690" y2="174"></line>
+            <line x1="42" y1="220" x2="690" y2="220"></line>
+            <line x1="42" y1="266" x2="690" y2="266"></line>
+            <text x="34" y="40">60k</text>
+            <text x="34" y="86">48k</text>
+            <text x="34" y="132">36k</text>
+            <text x="34" y="178">24k</text>
+            <text x="34" y="224">12k</text>
+            <text x="34" y="270">0</text>
+          </g>
+          <path class="source-line direct" d="M42,56 L78,104 L114,144 L150,164 L186,172 L222,166 L258,154 L294,128 L330,106 L366,108 L402,118 L438,108 L474,78 L510,68 L546,78 L582,96 L618,110 L654,256 L690,266"></path>
+          <path class="source-line search" d="M42,130 L78,168 L114,190 L150,206 L186,210 L222,206 L258,202 L294,194 L330,182 L366,174 L402,178 L438,164 L474,132 L510,120 L546,130 L582,154 L618,178 L654,250 L690,266"></path>
+          <path class="source-line referral" d="M42,206 L78,224 L114,238 L150,244 L186,246 L222,244 L258,242 L294,238 L330,228 L366,220 L402,224 L438,216 L474,204 L510,198 L546,198 L582,210 L618,230 L654,260 L690,266"></path>
+          <path class="source-line custom" d="M42,260 L78,262 L114,263 L150,263 L186,262 L222,262 L258,261 L294,260 L330,259 L366,259 L402,260 L438,259 L474,258 L510,257 L546,257 L582,258 L618,260 L654,264 L690,266"></path>
+          <g class="analytics-chart-x-axis">
+            <text x="42" y="292">0</text>
+            <text x="150" y="292">3</text>
+            <text x="258" y="292">6</text>
+            <text x="366" y="292">9</text>
+            <text x="474" y="292">12</text>
+            <text x="582" y="292">15</text>
+            <text x="690" y="292">18</text>
+          </g>
+        </svg>
+      </div>
+    </div>
+    <div class="analytics-source-legend">
+      <span><i class="direct"></i>直接访问</span>
+      <span><i class="search"></i>搜索引擎</span>
+      <span><i class="referral"></i>外部链接</span>
+      <span><i class="custom"></i>自定义来源</span>
+    </div>
+    <div class="analytics-custom-metric-row"><button type="button">自定义指标</button></div>
+  </div>`;
+}
+
 function renderChartAxis() {
   return `<div class="analytics-chart-axis"><span>05/21</span><span>05/22</span><span>05/23</span><span>05/24</span><span>05/25</span><span>05/26</span><span>05/27</span></div>`;
 }
@@ -1400,12 +1710,12 @@ function renderTrafficOverview() {
   const activeTrendMetric = analyticsTrendSeries[state.analyticsTrendMetric] ? state.analyticsTrendMetric : "pv";
   return `
     ${renderTrafficKpis()}
-    <section class="analytics-overview-grid traffic">
+    <section class="analytics-overview-hero-grid">
       <article class="panel analytics-trend-panel analytics-jump-target" id="analytics-trend">
         <div class="analytics-panel-head">
           <div>
             <h2>PV / UV 趋势</h2>
-            <p>概览页保留趋势大图，提供时间轴、指标切换和图例。</p>
+            <p>保留趋势分析里的核心趋势图，默认按日展示近 7 天访问变化。</p>
           </div>
           <div class="analytics-panel-actions">
             ${Object.entries(analyticsTrendSeries).map(([id, item]) => `<button class="${activeTrendMetric === id ? "active" : ""}" data-trend-metric="${id}" type="button">${item.shortLabel}</button>`).join("")}
@@ -1420,63 +1730,111 @@ function renderTrafficOverview() {
         ${renderOverviewTrendChart()}
       </article>
 
-      <article class="panel analytics-source-panel analytics-jump-target" id="analytics-source">
-        <div class="analytics-panel-head">
-          <div>
-            <h2>来源与搜索词</h2>
-            <p>来源结构和搜索词 Top 合并放在概览，详细分解进入来源分析页。</p>
-          </div>
-        </div>
-        <div class="analytics-source-list compact">
-          <div><b>搜索引擎</b><span>自然搜索进入</span><i style="width: 78%"></i><strong>42%</strong></div>
-          <div><b>直接访问</b><span>输入网址、收藏夹</span><i style="width: 42%"></i><strong>19%</strong></div>
-          <div><b>外部链接</b><span>合作站、行业目录、媒体报道</span><i style="width: 38%"></i><strong>18%</strong></div>
-          <div><b>社交私域</b><span>公众号、名片、朋友圈</span><i style="width: 32%"></i><strong>15%</strong></div>
-        </div>
-        <div class="analytics-overview-keywords">
-          <span>搜索词 Top</span>
-          <b>工业视觉检测系统</b>
-          <b>自动化产线改造</b>
-          <b>设备数据采集网关</b>
-        </div>
-      </article>
+      ${renderOverviewInsightPanel()}
     </section>
 
-    <section class="analytics-detail-grid">
-      ${renderPagesSummaryPanel()}
-      <article class="panel analytics-jump-target" id="analytics-visitor">
-        <div class="analytics-panel-head">
-          <div>
-            <h2>访客构成</h2>
-            <p>概览只展示最基础的人群结构，地域 / 设备 / 新老访客。</p>
-          </div>
-        </div>
-        <div class="analytics-visitor-grid">
-          <div><b>广东</b><span>31%</span><i style="width: 76%"></i></div>
-          <div><b>江苏</b><span>18%</span><i style="width: 48%"></i></div>
-          <div><b>PC</b><span>63%</span><i style="width: 63%"></i></div>
-          <div><b>移动端</b><span>37%</span><i style="width: 37%"></i></div>
-          <div><b>新访客</b><span>62%</span><i style="width: 62%"></i></div>
-          <div><b>老访客</b><span>38%</span><i style="width: 38%"></i></div>
-        </div>
-      </article>
-    </section>`;
+    <section class="analytics-overview-module-grid">
+      ${renderOverviewSourcePanel()}
+      ${renderOverviewPagePanel()}
+    </section>
+    ${renderOverviewVisitorPanel()}`;
 }
 
-function renderPagesSummaryPanel() {
+function renderOverviewInsightPanel() {
+  return `<article class="panel analytics-overview-insight-panel">
+    <div class="analytics-panel-head">
+      <div>
+        <h2>今日重点</h2>
+        <p>从四个分析页抽取需要马上看的信号。</p>
+      </div>
+    </div>
+    <div class="analytics-overview-alert-list">
+      <div class="good"><b>趋势</b><span>PV 连续 7 天抬升，近 7 天环比 +18%。</span></div>
+      <div><b>来源</b><span>直接访问贡献 60.5%，搜索引擎贡献 29.6%。</span></div>
+      <div class="warn"><b>页面</b><span>/products 退出偏高，需检查首屏承接与 CTA。</span></div>
+      <div><b>访客</b><span>移动端访问占 72%，但平均访问时长低于 PC。</span></div>
+    </div>
+    <div class="analytics-overview-mini-grid">
+      <div><span>贡献下游浏览量</span><strong>198,070</strong><small>页面承接质量</small></div>
+      <div><span>新访客占比</span><strong>50.08%</strong><small>拉新稳定</small></div>
+    </div>
+  </article>`;
+}
+
+function renderOverviewSourcePanel() {
+  return `<article class="panel analytics-source-panel analytics-jump-target" id="analytics-source">
+    <div class="analytics-panel-head">
+      <div>
+        <h2>来源概况</h2>
+        <p>摘取来源分析里的来源类型占比和访问质量，只保留能判断渠道结构的指标。</p>
+      </div>
+      <div class="analytics-panel-actions"><button type="button">来源分析</button></div>
+    </div>
+    <div class="analytics-overview-source-body">
+      <div class="analytics-source-list compact">
+        <div><b>直接访问</b><span>输入网址、收藏夹、未知来源</span><i style="width: 88%"></i><strong>60.5%</strong></div>
+        <div><b>搜索引擎</b><span>百度、360、Bing 等自然搜索</span><i style="width: 58%"></i><strong>29.6%</strong></div>
+        <div><b>外部链接</b><span>合作站、媒体报道、行业目录</span><i style="width: 24%"></i><strong>9.7%</strong></div>
+        <div><b>自定义来源</b><span>投放活动与私域渠道</span><i style="width: 8%"></i><strong>0.3%</strong></div>
+      </div>
+      <div class="analytics-overview-keywords">
+        <span>搜索词 Top</span>
+        <b>工业视觉检测系统</b>
+        <b>自动化产线改造</b>
+        <b>设备数据采集网关</b>
+      </div>
+    </div>
+  </article>`;
+}
+
+function renderOverviewPagePanel() {
   return `<article class="panel analytics-pages-panel analytics-jump-target" id="analytics-pages">
     <div class="analytics-panel-head">
       <div>
-        <h2>热门页面与入口页</h2>
-        <p>概览页只放 Top 页面和异常提醒，不放完整大表。</p>
+        <h2>页面承接</h2>
+        <p>摘取页面分析里的受访页面、入口页和退出异常，判断内容是否接住流量。</p>
       </div>
+      <div class="analytics-panel-actions"><button type="button">页面分析</button></div>
     </div>
     <div class="analytics-page-rank-list">
-      ${renderPageRankRow("1", "首页", "/", "受访页 / 入口页", "92%", ["PV", "5,820", "UV", "2,416", "入口", "2,103"], trendPill("+18%", "up"))}
-      ${renderPageRankRow("2", "产品服务", "/products", "受访页 / 转化页", "58%", ["PV", "2,430", "UV", "1,106", "跳出", "61%"], trendPill("偏高", "down"), "watch")}
-      ${renderPageRankRow("3", "解决方案", "/solutions", "受访页 / 入口页", "36%", ["PV", "1,108", "UV", "624", "停留", "1分21秒"], trendPill("稳定", "flat"))}
+      ${renderPageRankRow("1", "首页", "/", "受访 / 入口", "92%", ["PV", "17,589", "UV", "8,444", "下游", "18,156"], trendPill("+18%", "up"))}
+      ${renderPageRankRow("2", "产品服务", "/products", "受访 / 转化", "58%", ["PV", "16,387", "UV", "12,344", "退出", "5,698"], trendPill("偏高", "down"), "watch")}
+      ${renderPageRankRow("3", "解决方案", "/solutions", "受访 / 入口", "36%", ["PV", "12,459", "UV", "5,842", "停留", "03:59"], trendPill("优", "up"))}
     </div>
   </article>`;
+}
+
+function renderOverviewVisitorPanel() {
+  return `<section class="panel analytics-overview-visitor-panel analytics-jump-target" id="analytics-visitor">
+    <div class="analytics-panel-head">
+      <div>
+        <h2>访客画像</h2>
+        <p>从访客分析里抽取地域、系统环境、新老访客三项核心信息。</p>
+      </div>
+      <div class="analytics-panel-actions"><button type="button">访客分析</button></div>
+    </div>
+    <div class="analytics-overview-visitor-grid">
+      <div class="analytics-overview-visitor-block">
+        <b>地域 Top</b>
+        <div class="analytics-region-row"><b>广东</b><span>106,547 PV</span><i><u style="width:100%"></u></i><strong>11.29%</strong></div>
+        <div class="analytics-region-row"><b>山东</b><span>62,827 PV</span><i><u style="width:59%"></u></i><strong>6.65%</strong></div>
+        <div class="analytics-region-row"><b>北京</b><span>62,228 PV</span><i><u style="width:58%"></u></i><strong>6.59%</strong></div>
+      </div>
+      <div class="analytics-overview-visitor-block device">
+        <b>设备环境</b>
+        <div class="analytics-env-row"><div><b>移动端浏览器</b><span>691,266 PV · 74.44% 跳出</span></div><i><u style="width:72%"></u></i><strong>72%</strong></div>
+        <div class="analytics-env-row"><div><b>计算机端浏览器</b><span>267,585 PV · 62.46% 跳出</span></div><i><u style="width:28%"></u></i><strong>28%</strong></div>
+      </div>
+      <div class="analytics-overview-visitor-block split">
+        <b>新老访客</b>
+        <div class="analytics-overview-split">
+          <span><strong>50.08%</strong><small>新访客</small></span>
+          <span><strong>49.92%</strong><small>老访客</small></span>
+        </div>
+        <p>老访客平均访问时长 00:03:46，高于新访客 00:02:04。</p>
+      </div>
+    </div>
+  </section>`;
 }
 
 function renderPageRankRow(rank, title, path, type, width, metrics, pill, tone = "") {
@@ -1495,149 +1853,466 @@ function renderPageRankRow(rank, title, path, type, width, metrics, pill, tone =
 function renderTrafficTrendPage() {
   const activeTrendMetric = analyticsTrendSeries[state.analyticsTrendMetric] ? state.analyticsTrendMetric : "pv";
   return `
-    ${renderTrafficKpis()}
-    <section class="analytics-report-grid">
-      <article class="panel analytics-trend-panel large">
+    <section class="panel analytics-trend-workbench">
+      <div class="analytics-panel-head">
+        <div>
+          <h2>趋势分析 <small>(2026/05/21 - 2026/05/27)</small></h2>
+          <p>按时间、来源、设备、地域和访客类型查看核心指标趋势。</p>
+        </div>
+        <div class="analytics-panel-actions"><button type="button">下载</button><button type="button">收起筛选</button></div>
+      </div>
+      ${renderTrendMetricStrip()}
+      <div class="analytics-trend-chart-shell">
         <div class="analytics-panel-head">
-          <div>
-            <h2>趋势分析</h2>
-            <p>按百度统计趋势图样式展示坐标轴、对比曲线与鼠标悬浮数据。</p>
+          <div class="analytics-chart-primary-control">
+            ${renderTrendMetricSelect(activeTrendMetric)}
           </div>
           <div class="analytics-panel-actions">
             ${Object.entries(analyticsTrendSeries).map(([id, item]) => `<button class="${activeTrendMetric === id ? "active" : ""}" data-trend-metric="${id}" type="button">${item.shortLabel}</button>`).join("")}
           </div>
         </div>
-        <div class="analytics-chart-toolbar">
-          <b>趋势图</b>
-          <span>对比：</span>
-          <button class="active" type="button">前一周期</button>
-          <button type="button">上周同期</button>
-        </div>
         ${renderOverviewTrendChart()}
-      </article>
-      <aside class="panel analytics-report-side">
-        <h2>周期对比</h2>
-        <div class="analytics-compare-list">
-          <div><span>本周期 PV</span><b>12,480</b>${trendPill("+18%", "up")}</div>
-          <div><span>本周期 UV</span><b>4,862</b>${trendPill("+11%", "up")}</div>
-          <div><span>平均访问深度</span><b>2.57 页</b>${trendPill("稳定", "flat")}</div>
-          <div><span>跳出率</span><b>48%</b>${trendPill("偏高", "down")}</div>
+        <div class="analytics-chart-compare-row">
+          <span>对比：</span>
+          <label><input type="checkbox" checked /> 前一日</label>
+          <label><input type="checkbox" /> 上周同期</label>
         </div>
-      </aside>
+        <div class="analytics-custom-metric-row">
+          <button type="button">自定义指标</button>
+        </div>
+      </div>
     </section>
     <section class="panel analytics-table-panel">
-      <div class="analytics-panel-head"><div><h2>每日明细</h2></div></div>
+      <div class="analytics-panel-head">
+        <div>
+          <h2>详细数据</h2>
+          <p>按日展示明细，不展开到每小时。</p>
+        </div>
+        <div class="analytics-panel-actions"><button type="button">导出 CSV</button><button type="button">列设置</button></div>
+      </div>
       ${renderTrafficDailyTable()}
     </section>`;
 }
 
 function renderTrafficDailyTable() {
   return `<table class="analytics-table">
-    <thead><tr><th>日期</th><th>PV</th><th>UV</th><th>IP</th><th>访问次数</th><th>跳出率</th><th>平均停留</th></tr></thead>
+    <thead>
+      <tr><th rowspan="2">序号</th><th rowspan="2">日期</th><th colspan="3">网站基础指标</th><th colspan="2">流量质量指标</th></tr>
+      <tr><th>浏览量(PV)</th><th>访客数(UV)</th><th>IP数</th><th>跳出率</th><th>平均访问时长</th></tr>
+    </thead>
     <tbody>
-      <tr><td>05/21</td><td>1,420</td><td>584</td><td>492</td><td>774</td><td>52%</td><td>1分09秒</td></tr>
-      <tr><td>05/22</td><td>1,586</td><td>642</td><td>516</td><td>842</td><td>49%</td><td>1分18秒</td></tr>
-      <tr><td>05/23</td><td>1,732</td><td>708</td><td>572</td><td>924</td><td>47%</td><td>1分23秒</td></tr>
-      <tr><td>05/24</td><td>1,806</td><td>721</td><td>591</td><td>948</td><td>46%</td><td>1分26秒</td></tr>
-      <tr><td>05/25</td><td>1,886</td><td>739</td><td>604</td><td>986</td><td>48%</td><td>1分25秒</td></tr>
-      <tr><td>05/26</td><td>1,974</td><td>773</td><td>628</td><td>1,014</td><td>45%</td><td>1分31秒</td></tr>
-      <tr><td>05/27</td><td>2,076</td><td>695</td><td>513</td><td>950</td><td>47%</td><td>1分29秒</td></tr>
+      <tr><td>1</td><td>2026/05/21</td><td>1,420</td><td>584</td><td>492</td><td>52%</td><td>00:01:09</td></tr>
+      <tr><td>2</td><td>2026/05/22</td><td>1,586</td><td>642</td><td>516</td><td>49%</td><td>00:01:18</td></tr>
+      <tr><td>3</td><td>2026/05/23</td><td>1,732</td><td>708</td><td>572</td><td>47%</td><td>00:01:23</td></tr>
+      <tr><td>4</td><td>2026/05/24</td><td>1,806</td><td>721</td><td>591</td><td>46%</td><td>00:01:26</td></tr>
+      <tr><td>5</td><td>2026/05/25</td><td>1,886</td><td>739</td><td>604</td><td>48%</td><td>00:01:25</td></tr>
+      <tr><td>6</td><td>2026/05/26</td><td>1,974</td><td>773</td><td>628</td><td>45%</td><td>00:01:31</td></tr>
+      <tr><td>7</td><td>2026/05/27</td><td>2,076</td><td>695</td><td>513</td><td>47%</td><td>00:01:29</td></tr>
+      <tr class="analytics-summary-row"><td></td><td>当前汇总</td><td>12,480</td><td>4,862</td><td>3,916</td><td>48%</td><td>00:01:26</td></tr>
     </tbody>
   </table>`;
 }
 
 function renderTrafficSourcePage() {
   return `
-    <section class="analytics-report-grid">
-      <article class="panel">
-        <div class="analytics-panel-head"><div><h2>来源分析</h2></div></div>
-        <div class="analytics-source-list">
-          <div><b>搜索引擎</b><span>百度、360、Bing 等自然搜索</span><i style="width: 68%"></i><strong>42%</strong></div>
-          <div><b>直接访问</b><span>输入网址、收藏夹</span><i style="width: 31%"></i><strong>19%</strong></div>
-          <div><b>外部链接</b><span>合作站、行业目录、媒体报道</span><i style="width: 28%"></i><strong>18%</strong></div>
-          <div><b>社交私域</b><span>公众号、名片、朋友圈</span><i style="width: 24%"></i><strong>15%</strong></div>
+    <section class="panel analytics-source-workbench">
+      <div class="analytics-panel-head">
+        <div>
+          <h2>全部来源 <small>(2026/05/28)</small></h2>
+          <p>按来源类型和来源网站查看访问贡献、流量质量和趋势变化。</p>
         </div>
-      </article>
-      <article class="panel">
-        <div class="analytics-panel-head"><div><h2>搜索词 Top</h2></div></div>
-        <div class="analytics-keyword-list compact">
-          <div><b>工业视觉检测系统</b><span>百度 · 入口产品页</span><strong>1,286</strong><em>PV</em><strong>+22%</strong></div>
-          <div><b>自动化产线改造</b><span>360搜索 · 入口解决方案</span><strong>842</strong><em>PV</em><strong>+15%</strong></div>
-          <div><b>设备数据采集网关</b><span>Bing · 入口产品页</span><strong>516</strong><em>PV</em><strong>-4%</strong></div>
-          <div><b>智能制造解决方案</b><span>百度 · 入口首页</span><strong>438</strong><em>PV</em><strong>+8%</strong></div>
-        </div>
-      </article>
+        <div class="analytics-panel-actions"><button type="button">下载</button><button type="button">收起筛选</button></div>
+      </div>
+      <div class="analytics-source-warning">
+        <b>提示</b>
+        <span>因浏览器隐私策略升级，第三方统计工具可能无法获取完整上游地址。若需要排除“已屏蔽”数据，可在上方“智能屏蔽数据”中选择“不包含”。</span>
+      </div>
+      <div class="analytics-source-tabs">
+        <button class="active" type="button">来源类型</button>
+        <button type="button">来源网站</button>
+      </div>
+      ${renderSourceMetricStrip()}
+      ${renderSourceChartPanel()}
     </section>
     <section class="panel analytics-table-panel">
-      <div class="analytics-panel-head"><div><h2>来源明细</h2></div></div>
-      <table class="analytics-table">
-        <thead><tr><th>来源</th><th>类型</th><th>PV</th><th>UV</th><th>入口次数</th><th>跳出率</th><th>转化</th></tr></thead>
+      <div class="analytics-panel-head">
+        <div>
+          <h2>来源明细</h2>
+          <p>按来源类型汇总，指标分为网站基础指标和流量质量指标。</p>
+        </div>
+        <div class="analytics-panel-actions"><button type="button">导出 CSV</button><button type="button">列设置</button></div>
+      </div>
+      <table class="analytics-table analytics-source-type-table">
+        <thead>
+          <tr><th rowspan="2"></th><th rowspan="2">序号</th><th rowspan="2">来源类型</th><th colspan="3">网站基础指标</th><th colspan="2">流量质量指标</th></tr>
+          <tr><th>浏览量(PV)</th><th>访客数(UV)</th><th>IP数</th><th>跳出率</th><th>平均访问时长</th></tr>
+        </thead>
         <tbody>
-          <tr><td><b>百度搜索</b><span>baidu.com</span></td><td>搜索引擎</td><td>3,286</td><td>1,482</td><td>1,226</td><td>45%</td><td>18</td></tr>
-          <tr><td><b>直接访问</b><span>地址栏 / 收藏夹</span></td><td>直接</td><td>1,482</td><td>918</td><td>834</td><td>51%</td><td>9</td></tr>
-          <tr><td><b>行业目录</b><span>合作站 / 目录站</span></td><td>外部链接</td><td>1,624</td><td>822</td><td>602</td><td>39%</td><td>13</td></tr>
-          <tr><td><b>公众号文章</b><span>mp.weixin.qq.com</span></td><td>外链</td><td>914</td><td>428</td><td>302</td><td>44%</td><td>6</td></tr>
+          <tr><td><button class="analytics-row-toggle" type="button">+</button></td><td>1</td><td><b>直接访问</b></td><td>570,416</td><td>252,210</td><td>247,195</td><td>64.52%</td><td>00:03:52</td></tr>
+          <tr><td><button class="analytics-row-toggle" type="button">+</button></td><td>2</td><td><b class="analytics-link-text">搜索引擎</b></td><td>278,844</td><td>165,408</td><td>160,566</td><td>82.32%</td><td>00:01:55</td></tr>
+          <tr><td><button class="analytics-row-toggle" type="button">+</button></td><td>3</td><td><b class="analytics-link-text">外部链接</b></td><td>91,187</td><td>45,236</td><td>45,537</td><td>72.67%</td><td>00:02:21</td></tr>
+          <tr><td></td><td>4</td><td><b>自定义来源</b></td><td>3,014</td><td>2,021</td><td>2,018</td><td>82.12%</td><td>00:02:13</td></tr>
+          <tr class="analytics-summary-row"><td></td><td></td><td>当前汇总</td><td>943,461</td><td>464,875</td><td>455,316</td><td>72.22%</td><td>00:02:58</td></tr>
         </tbody>
       </table>
     </section>`;
 }
 
+function renderPageUrlRows() {
+  const rows = [
+    ["1", "https://demo.geo-studio.cn/", "17,589", "8,444", "18,156", "1,769", "00:01:01"],
+    ["2", "https://demo.geo-studio.cn/products", "16,387", "12,344", "2,823", "5,698", "00:00:57"],
+    ["3", "https://demo.geo-studio.cn/solutions", "12,459", "5,842", "2,563", "5,826", "00:03:59"],
+    ["4", "https://demo.geo-studio.cn/cases", "12,065", "6,794", "3,480", "5,923", "00:03:22"],
+    ["5", "https://demo.geo-studio.cn/contact", "11,446", "9,249", "0", "6,343", "00:00:43"],
+    ["6", "https://demo.geo-studio.cn/geo", "11,171", "6,160", "3,047", "4,953", "00:02:26"],
+    ["7", "https://demo.geo-studio.cn/blog/ai-search", "10,744", "10,050", "364", "9,399", "00:01:39"],
+    ["8", "https://demo.geo-studio.cn/pricing", "10,116", "8,424", "2,009", "6,056", "00:01:16"],
+    ["9", "https://demo.geo-studio.cn/about", "10,105", "8,877", "510", "6,985", "00:01:13"],
+    ["10", "https://demo.geo-studio.cn/help", "7,792", "6,434", "864", "5,903", "00:01:34"],
+    ["11", "https://demo.geo-studio.cn/news/industry-report", "7,530", "4,388", "2,787", "2,896", "00:03:02"],
+    ["12", "https://demo.geo-studio.cn/source/partner", "6,915", "5,032", "2,592", "1,295", "00:01:25"]
+  ];
+  return rows.map(([rank, url, pv, uv, downstream, exits, stay]) => `<tr>
+    <td>${rank}</td>
+    <td><b class="analytics-page-url">${url}</b></td>
+    <td>${pv}</td>
+    <td>${uv}</td>
+    <td>${downstream}</td>
+    <td>${exits}</td>
+    <td>${stay}</td>
+  </tr>`).join("");
+}
+
 function renderTrafficPagesPage() {
+  const activePageReport = analyticsPageReportTabs.find(tab => tab.id === state.analyticsPageReportTab) || analyticsPageReportTabs[0];
   return `
-    <section class="panel analytics-pages-panel">
-      <div class="analytics-panel-head"><div><h2>页面分析</h2></div><div class="analytics-period-note">页面价值 / 入口页 / 退出页</div></div>
-      <div class="analytics-pages-layout">
-        <div class="analytics-page-rank-list">
-          ${renderPageRankRow("1", "首页", "/", "受访页 / 入口页", "92%", ["PV", "5,820", "入口", "2,103", "输出PV", "3,740"], trendPill("+18%", "up"))}
-          ${renderPageRankRow("2", "产品服务", "/products", "受访页 / 转化页", "58%", ["PV", "2,430", "跳出", "61%", "转化", "9"], trendPill("偏高", "down"), "watch")}
-          ${renderPageRankRow("3", "解决方案", "/solutions", "受访页 / 入口页", "36%", ["PV", "1,108", "停留", "1分21秒", "入口", "316"], trendPill("稳定", "flat"))}
-          ${renderPageRankRow("4", "联系我们", "/contact", "转化页 / 退出页", "24%", ["PV", "618", "退出率", "18%", "转化", "42"], trendPill("+31%", "up"), "good")}
+    <section class="panel analytics-page-workbench">
+      <div class="analytics-panel-head">
+        <div>
+          <h2>${activePageReport.title} <small>(2026/05/28)</small></h2>
+          <p>${activePageReport.desc}</p>
         </div>
-        <aside class="analytics-page-insights">
-          <div><span>页面价值最高</span><b>首页</b><small>输出 PV 高，适合作为产品与方案的分发入口</small></div>
-          <div class="watch"><span>退出风险</span><b>产品服务</b><small>跳出率 61%，建议增加参数摘要、案例和咨询按钮</small></div>
-          <div><span>入口页最高</span><b>首页</b><small>入口 2,103 次，占全部入口 52%</small></div>
-          <div><span>转化最好</span><b>联系我们</b><small>转化 42 次，退出率低</small></div>
-        </aside>
+        <div class="analytics-panel-actions"><button type="button">下载</button><button type="button">收起筛选</button></div>
+      </div>
+      <div class="analytics-source-warning">
+        <b>提示</b>
+        <span>智能屏蔽数据会影响当前汇总。选择“不包含”后，疑似异常访问、机器流量和黑灰产访问会从本报告中排除。</span>
+      </div>
+      <div class="analytics-source-tabs analytics-page-analysis-tabs">
+        ${analyticsPageReportTabs.map(tab => `<button class="${activePageReport.id === tab.id ? "active" : ""}" data-page-report-tab="${tab.id}" type="button">${tab.label}</button>`).join("")}
+      </div>
+      ${renderPageMetricStrip()}
+      <div class="analytics-custom-metric-row">
+        <button type="button">自定义指标</button>
+      </div>
+    </section>
+    <section class="panel analytics-table-panel analytics-page-table-panel">
+      <div class="analytics-panel-head">
+        <div>
+          <h2>${activePageReport.tableTitle}</h2>
+          <p>${activePageReport.tableDesc}</p>
+        </div>
+        <div class="analytics-panel-actions"><button type="button">导出 CSV</button><button type="button">列设置</button></div>
+      </div>
+      <div class="analytics-table-scroll">
+        <table class="analytics-table analytics-page-url-table">
+          <thead>
+            <tr><th rowspan="2">序号</th><th rowspan="2">页面URL</th><th colspan="2">网站基础指标</th><th colspan="3">流量质量指标</th></tr>
+            <tr><th>浏览量(PV)</th><th>访客数(UV)</th><th>贡献下游浏览量</th><th>退出页次数</th><th>平均停留时长</th></tr>
+          </thead>
+          <tbody>
+            ${renderPageUrlRows()}
+            <tr class="analytics-summary-row"><td></td><td>当前汇总</td><td>174,787</td><td>121,057</td><td>43,321</td><td>88,702</td><td>00:01:52</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="analytics-pagination">
+        <label>显示行数：<select><option>20</option><option>50</option><option>100</option></select></label>
+        <button class="active" type="button">1</button><button type="button">2</button><button type="button">3</button><button type="button">4</button><button type="button">5</button>
+        <span>...</span><button type="button">500</button>
+        <label>跳转至第 <input type="text" value="" aria-label="页码" /> 页</label><button type="button">确定</button>
+      </div>
+      <div class="analytics-page-tips">
+        <b>小贴士</b>
+        <span>${activePageReport.tip}</span>
       </div>
     </section>`;
 }
 
-function renderTrafficVisitorPage() {
-  return `
-    <section class="analytics-report-grid">
-      <article class="panel">
-        <div class="analytics-panel-head"><div><h2>地域分布</h2></div></div>
-        <div class="analytics-visitor-grid large">
-          <div><b>广东</b><span>31%</span><i style="width: 76%"></i></div>
-          <div><b>江苏</b><span>18%</span><i style="width: 48%"></i></div>
-          <div><b>浙江</b><span>14%</span><i style="width: 38%"></i></div>
-          <div><b>北京</b><span>9%</span><i style="width: 26%"></i></div>
-          <div><b>上海</b><span>8%</span><i style="width: 22%"></i></div>
-          <div><b>山东</b><span>6%</span><i style="width: 18%"></i></div>
-        </div>
-      </article>
-      <article class="panel">
-        <div class="analytics-panel-head"><div><h2>访客属性</h2></div></div>
-        <div class="analytics-visitor-profile">
-          <div><b>新访客</b><strong>62%</strong><span>自然搜索和外部链接贡献较高</span></div>
-          <div><b>老访客</b><strong>38%</strong><span>多集中在产品服务与联系我们</span></div>
-          <div><b>PC</b><strong>63%</strong><span>B2B 决策访问为主</span></div>
-          <div><b>移动端</b><strong>37%</strong><span>来自私域外链和公众号</span></div>
-        </div>
-      </article>
-    </section>
-    <section class="panel analytics-table-panel">
-      <div class="analytics-panel-head"><div><h2>设备与浏览器</h2></div></div>
-      <table class="analytics-table">
-        <thead><tr><th>设备 / 浏览器</th><th>PV</th><th>UV</th><th>占比</th><th>平均停留</th><th>转化</th></tr></thead>
+function renderVisitorMetricStrip() {
+  return `<div class="analytics-trend-summary-strip visitor-summary">
+    <div><span>浏览量(PV)</span><strong>960,760</strong><small>全部访客访问量</small></div>
+    <div><span>访客数(UV)</span><strong>457,532</strong><small>独立访客人数</small></div>
+    <div><span>IP数</span><strong>445,586</strong><small>访问覆盖</small></div>
+    <div><span>跳出率</span><strong>72.14%</strong><small>当前汇总</small></div>
+    <div><span>平均访问时长</span><strong>00:02:59</strong><small>访客平均停留</small></div>
+  </div>`;
+}
+
+function getVisitorRegionRows() {
+  const provinceRows = [
+    ["1", "广东", "106,547", "51,960", "48,660", "71%", "00:03:04", "11.29%"],
+    ["2", "山东", "62,827", "33,727", "31,656", "74.64%", "00:02:43", "6.65%"],
+    ["3", "北京", "62,228", "28,988", "27,727", "69.96%", "00:03:20", "6.59%"],
+    ["4", "江苏", "61,923", "31,518", "28,960", "73.36%", "00:03:03", "6.56%"],
+    ["5", "浙江", "52,843", "26,300", "26,126", "70.95%", "00:03:03", "5.6%"],
+    ["6", "安徽", "47,773", "17,488", "16,259", "73.97%", "00:03:03", "5.06%"],
+    ["7", "河南", "47,189", "26,166", "25,794", "74.59%", "00:02:39", "5%"],
+    ["8", "河北", "44,363", "24,184", "23,981", "74.26%", "00:02:33", "4.7%"],
+    ["9", "四川", "39,269", "20,147", "19,842", "72.06%", "00:02:59", "4.16%"],
+    ["10", "福建", "34,442", "16,480", "16,355", "70.3%", "00:03:08", "3.65%"]
+  ];
+  const countryRows = [
+    ["1", "中国", "811,286", "404,930", "392,844", "72.24%", "00:02:57", "84.44%"],
+    ["2", "美国", "36,122", "16,450", "15,906", "68.32%", "00:03:22", "3.76%"],
+    ["3", "新加坡", "18,684", "8,913", "8,704", "66.18%", "00:03:46", "1.94%"],
+    ["4", "中国香港", "14,206", "6,912", "6,704", "70.22%", "00:02:48", "1.48%"],
+    ["5", "日本", "12,857", "5,840", "5,712", "73.84%", "00:02:31", "1.34%"],
+    ["6", "德国", "8,944", "4,268", "4,110", "69.8%", "00:03:09", "0.93%"]
+  ];
+  return state.analyticsVisitorRegionMode === "country" ? countryRows : provinceRows;
+}
+
+function renderVisitorRegionPanel() {
+  const rows = getVisitorRegionRows();
+  const mode = state.analyticsVisitorRegionMode === "country" ? "country" : "province";
+  const maxPv = Number(rows[0][2].replace(/,/g, ""));
+  const rankRows = rows.slice(0, 6).map(row => {
+    const width = Math.max(10, Math.round(Number(row[2].replace(/,/g, "")) / maxPv * 100));
+    return `<div class="analytics-region-row">
+      <b>${row[1]}</b><span>${row[2]} PV</span><i><u style="width:${width}%"></u></i><strong>${row[7]}</strong>
+    </div>`;
+  }).join("");
+  return `<section class="panel analytics-visitor-region-panel">
+    <div class="analytics-panel-head">
+      <div>
+        <h2>地域分布</h2>
+        <p>查看访客来自哪些地域，核心指标沿用 PV、UV、IP、跳出率和平均访问时长。</p>
+      </div>
+      <div class="analytics-panel-actions">
+        <button class="${mode === "province" ? "active" : ""}" data-visitor-region-mode="province" type="button">按省</button>
+        <button class="${mode === "country" ? "active" : ""}" data-visitor-region-mode="country" type="button">按国家</button>
+      </div>
+    </div>
+    <div class="analytics-visitor-panel-toolbar">
+      <label class="analytics-trend-select-wrap">指标：
+        <select><option>浏览量(PV)</option><option>访客数(UV)</option><option>IP数</option><option>跳出率</option><option>平均访问时长</option></select>
+      </label>
+      <button type="button">自定义指标</button>
+    </div>
+    <div class="analytics-region-panel-body">
+      <div class="analytics-visitor-map">
+        <strong>${mode === "province" ? "省份热度" : "国家热度"}</strong>
+        <span class="analytics-map-dot gd"><b>${rows[0][1]}</b><i>${rows[0][2]}</i></span>
+        <span class="analytics-map-dot sd"><b>${rows[1][1]}</b><i>${rows[1][2]}</i></span>
+        <span class="analytics-map-dot bj"><b>${rows[2][1]}</b><i>${rows[2][2]}</i></span>
+        <span class="analytics-map-dot js"><b>${rows[3][1]}</b><i>${rows[3][2]}</i></span>
+        <em>当前展示 ${mode === "province" ? "省份" : "国家"} 维度，支持继续下钻到地级市。</em>
+      </div>
+      <div class="analytics-region-rank">
+        ${rankRows}
+      </div>
+    </div>
+  </section>`;
+}
+
+function renderVisitorRegionTablePanel() {
+  const rows = getVisitorRegionRows();
+  const mode = state.analyticsVisitorRegionMode === "country" ? "country" : "province";
+  return `<section class="panel analytics-table-panel analytics-visitor-region-detail-panel">
+    <div class="analytics-panel-head">
+      <div>
+        <h2>地域明细</h2>
+        <p>单独横向展示完整地域数据，避免地域图表区被明细表拉长。</p>
+      </div>
+      <div class="analytics-panel-actions">
+        <button class="${mode === "province" ? "active" : ""}" data-visitor-region-mode="province" type="button">按省</button>
+        <button class="${mode === "country" ? "active" : ""}" data-visitor-region-mode="country" type="button">按国家</button>
+        <button type="button">导出 CSV</button>
+      </div>
+    </div>
+    <div class="analytics-table-scroll">
+      <table class="analytics-table analytics-visitor-region-table">
+        <thead>
+          <tr><th rowspan="2">序号</th><th rowspan="2">地域</th><th colspan="3">网站基础指标</th><th colspan="2">流量质量指标</th></tr>
+          <tr><th>浏览量(PV)</th><th>访客数(UV)</th><th>IP数</th><th>跳出率</th><th>平均访问时长</th></tr>
+        </thead>
         <tbody>
-          <tr><td>PC · Chrome</td><td>4,286</td><td>1,762</td><td>34%</td><td>1分46秒</td><td>24</td></tr>
-          <tr><td>PC · Edge</td><td>2,114</td><td>934</td><td>17%</td><td>1分38秒</td><td>12</td></tr>
-          <tr><td>Mobile · WeChat</td><td>1,920</td><td>1,104</td><td>15%</td><td>58秒</td><td>8</td></tr>
-          <tr><td>Mobile · Safari</td><td>1,206</td><td>642</td><td>10%</td><td>1分04秒</td><td>5</td></tr>
+          ${rows.map(row => `<tr><td>${row[0]}</td><td><b>${row[1]}</b><span>占比 ${row[7]}</span></td><td>${row[2]}</td><td>${row[3]}</td><td>${row[4]}</td><td>${row[5]}</td><td>${row[6]}</td></tr>`).join("")}
+          <tr class="analytics-summary-row"><td></td><td>当前汇总</td><td>${mode === "province" ? "811,286" : "902,099"}</td><td>${mode === "province" ? "404,930" : "447,313"}</td><td>${mode === "province" ? "392,844" : "433,980"}</td><td>72.24%</td><td>00:02:57</td></tr>
         </tbody>
       </table>
+    </div>
+  </section>`;
+}
+
+function getVisitorEnvironmentData() {
+  const data = {
+    browser: {
+      label: "浏览器",
+      rows: [
+        ["1", "移动端浏览器", "691,266", "377,876", "379,019", "74.44%", "00:02:22", 72],
+        ["2", "计算机端浏览器", "267,585", "78,389", "67,509", "62.46%", "00:05:35", 28]
+      ],
+      insight: "移动端浏览器贡献大部分访问，但 PC 端平均访问时长更高。"
+    },
+    device: {
+      label: "网络设备类型",
+      rows: [
+        ["1", "移动设备", "691,266", "377,876", "379,019", "74.44%", "00:02:22", 72],
+        ["2", "计算机", "267,585", "78,389", "67,509", "62.46%", "00:05:35", 28]
+      ],
+      insight: "移动端流量占主导，移动端首屏和咨询按钮需要优先验证。"
+    },
+    resolution: {
+      label: "屏幕分辨率",
+      rows: [
+        ["1", "390 × 844", "182,420", "98,216", "97,804", "75.02%", "00:02:06", 34],
+        ["2", "1920 × 1080", "146,338", "42,586", "39,913", "61.86%", "00:05:48", 27],
+        ["3", "375 × 812", "118,904", "65,440", "64,905", "76.21%", "00:02:01", 22],
+        ["4", "1440 × 900", "84,512", "25,791", "24,118", "63.08%", "00:04:52", 16]
+      ],
+      insight: "高分辨率 PC 访问质量更好，小屏移动端跳出率偏高。"
+    }
+  };
+  return data[state.analyticsVisitorEnvDimension] || data.browser;
+}
+
+function renderVisitorEnvironmentPanel() {
+  const active = state.analyticsVisitorEnvDimension || "browser";
+  const env = getVisitorEnvironmentData();
+  return `<section class="panel analytics-visitor-env-panel">
+    <div class="analytics-panel-head">
+      <div>
+        <h2>系统环境</h2>
+        <p>合并浏览器、设备类型、屏幕分辨率等环境维度，用来判断体验差异。</p>
+      </div>
+      <div class="analytics-panel-actions">
+        ${["browser", "device", "resolution"].map(id => `<button class="${active === id ? "active" : ""}" data-visitor-env-dimension="${id}" type="button">${{ browser: "浏览器", device: "设备", resolution: "分辨率" }[id]}</button>`).join("")}
+      </div>
+    </div>
+    <div class="analytics-visitor-panel-toolbar">
+      <label class="analytics-trend-select-wrap">指标：
+        <select><option>浏览量(PV)</option><option>访客数(UV)</option><option>IP数</option><option>跳出率</option><option>平均访问时长</option></select>
+      </label>
+      <span>${env.insight}</span>
+    </div>
+    <div class="analytics-env-panel-body">
+      <div class="analytics-env-bars">
+        ${env.rows.map(row => `<div class="analytics-env-row">
+          <div><b>${row[1]}</b><span>${row[2]} PV · ${row[5]} 跳出</span></div>
+          <i><u style="width:${row[7]}%"></u></i><strong>${row[7]}%</strong>
+        </div>`).join("")}
+      </div>
+      <div class="analytics-env-summary">
+        <b>${env.label}访问质量</b>
+        <strong>${env.rows[0][2]}</strong>
+        <span>${env.rows[0][1]} 为当前最大访问来源，平均访问时长 ${env.rows[0][6]}。</span>
+      </div>
+    </div>
+    <div class="analytics-table-scroll">
+      <table class="analytics-table analytics-visitor-env-table">
+        <thead><tr><th>${env.label}</th><th>浏览量(PV)</th><th>访客数(UV)</th><th>IP数</th><th>跳出率</th><th>平均访问时长</th></tr></thead>
+        <tbody>
+          ${env.rows.map(row => `<tr><td><b>${row[1]}</b></td><td>${row[2]}</td><td>${row[3]}</td><td>${row[4]}</td><td>${row[5]}</td><td>${row[6]}</td></tr>`).join("")}
+          <tr class="analytics-summary-row"><td>当前汇总</td><td>958,851</td><td>456,265</td><td>446,528</td><td>72.13%</td><td>00:02:59</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>`;
+}
+
+function renderVisitorTopList(title, rows) {
+  return `<div class="analytics-visitor-top-list">
+    <b>${title}</b>
+    ${rows.map((row, index) => `<div><em>${index + 1}</em><span>${row[0]}</span><strong>${row[1]}</strong></div>`).join("")}
+  </div>`;
+}
+
+function renderVisitorTypePanel() {
+  const newSources = [["直接访问", "237,423"], ["百度", "117,246"], ["产品优化页", "17,051"], ["360搜索", "10,705"], ["小时趋势页", "5,775"]];
+  const oldSources = [["直接访问", "343,118"], ["百度", "135,548"], ["产品优化页", "12,391"], ["360搜索", "6,341"], ["站点代码页", "3,814"]];
+  const newEntrances = [["/web/visit/attribute", "6,248"], ["/analytics/distribution", "5,826"], ["/web/optes", "4,605"], ["/web/visit/district", "4,500"], ["/trans/basicsetting", "3,774"]];
+  const oldEntrances = [["/analytics/conversion/overview", "10,130"], ["/analytics/apply", "4,611"], ["/analytics/distribution", "4,472"], ["/web/source/all", "4,421"], ["/web/custom/pageclick", "4,028"]];
+  return `<section class="panel analytics-visitor-type-panel">
+    <div class="analytics-panel-head">
+      <div>
+        <h2>新老访客</h2>
+        <p>对比新访客和老访客的访问质量、来源网站和入口页表现。</p>
+      </div>
+      <div class="analytics-panel-actions"><button type="button">下载</button><button type="button">自定义指标</button></div>
+    </div>
+    <div class="analytics-visitor-type-grid">
+      <article class="analytics-visitor-segment-card new">
+        <div class="analytics-segment-meter" style="--value:50.08%"><strong>50.08%</strong><span>新访客</span></div>
+        <div class="analytics-visitor-segment-metrics">
+          <div><span>浏览量</span><b>425,086</b></div>
+          <div><span>访客数</span><b>229,139</b></div>
+          <div><span>跳出率</span><b>73.68%</b></div>
+          <div><span>平均访问时长</span><b>00:02:04</b></div>
+          <div><span>平均访问页数</span><b>1.64</b></div>
+        </div>
+      </article>
+      <article class="analytics-visitor-segment-card returning">
+        <div class="analytics-segment-meter" style="--value:49.92%"><strong>49.92%</strong><span>老访客</span></div>
+        <div class="analytics-visitor-segment-metrics">
+          <div><span>浏览量</span><b>535,674</b></div>
+          <div><span>访客数</span><b>228,393</b></div>
+          <div><span>跳出率</span><b>70.81%</b></div>
+          <div><span>平均访问时长</span><b>00:03:46</b></div>
+          <div><span>平均访问页数</span><b>1.78</b></div>
+        </div>
+      </article>
+    </div>
+    <div class="analytics-visitor-top-grid">
+      ${renderVisitorTopList("新访客来源 TOP 5", newSources)}
+      ${renderVisitorTopList("老访客来源 TOP 5", oldSources)}
+      ${renderVisitorTopList("新访客入口页 TOP 5", newEntrances)}
+      ${renderVisitorTopList("老访客入口页 TOP 5", oldEntrances)}
+    </div>
+  </section>`;
+}
+
+function renderTrafficVisitorPage() {
+  return `
+    <section class="panel analytics-visitor-workbench">
+      <div class="analytics-panel-head">
+        <div>
+          <h2>访客分析 <small>(2026/05/28)</small></h2>
+          <p>合并地域分布、系统环境和新老访客三类报表，用一个页面判断访客来源、设备体验和访问质量。</p>
+        </div>
+        <div class="analytics-panel-actions"><button type="button">下载</button><button type="button">收起筛选</button></div>
+      </div>
+      ${renderVisitorMetricStrip()}
+    </section>
+    <section class="analytics-visitor-combined-grid">
+      ${renderVisitorRegionPanel()}
+      ${renderVisitorEnvironmentPanel()}
+    </section>
+    ${renderVisitorRegionTablePanel()}
+    ${renderVisitorTypePanel()}
+    <section class="panel analytics-table-panel analytics-visitor-detail-panel">
+      <div class="analytics-panel-head">
+        <div>
+          <h2>新老访客明细</h2>
+          <p>按新老访客汇总基础指标和流量质量指标，保留可导出的表格口径。</p>
+        </div>
+        <div class="analytics-panel-actions"><button type="button">导出 CSV</button><button type="button">列设置</button></div>
+      </div>
+      <div class="analytics-table-scroll">
+        <table class="analytics-table analytics-visitor-type-table">
+          <thead>
+            <tr><th rowspan="2">新老访客</th><th colspan="3">网站基础指标</th><th colspan="3">流量质量指标</th></tr>
+            <tr><th>浏览量(PV)</th><th>访客数(UV)</th><th>IP数</th><th>跳出率</th><th>平均访问时长</th><th>平均访问页数</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><b>老访客</b></td><td>535,674</td><td>228,393</td><td>229,805</td><td>70.81%</td><td>00:03:46</td><td>1.78</td></tr>
+            <tr><td><b>新访客</b></td><td>425,086</td><td>229,139</td><td>215,781</td><td>73.68%</td><td>00:02:04</td><td>1.64</td></tr>
+            <tr class="analytics-summary-row"><td>当前汇总</td><td>960,760</td><td>457,532</td><td>445,586</td><td>72.14%</td><td>00:02:59</td><td>1.71</td></tr>
+          </tbody>
+        </table>
+      </div>
     </section>`;
 }
 
@@ -1772,7 +2447,7 @@ function bindAnalyticsTrendInteractions() {
     compareDot.setAttribute("cy", compare.y);
     tooltip.style.left = `${tooltipLeft}px`;
     tooltip.style.top = `${tooltipTop}px`;
-    tooltip.innerHTML = `<b>${analyticsTrendLabels[index]}</b><span><i></i>${series.label}：${formatCompactNumber(series.current[index])}</span><span><i></i>上一周期：${formatCompactNumber(series.compare[index])}</span>`;
+    tooltip.innerHTML = `<b>${analyticsTrendLabels[index]}</b><span><i></i>${series.label}：${formatAnalyticsValue(series, series.current[index])}</span><span><i></i>上一周期：${formatAnalyticsValue(series, series.compare[index])}</span>`;
     hoverGroup.classList.remove("is-hidden");
     tooltip.classList.remove("is-hidden");
   };
@@ -1870,10 +2545,26 @@ function bindEvents() {
     state.trafficAnalyticsTab = btn.dataset.trafficTab;
     render();
   }));
+  $$("[data-page-report-tab]").forEach(btn => btn.addEventListener("click", () => {
+    state.analyticsPageReportTab = btn.dataset.pageReportTab;
+    render();
+  }));
+  $$("[data-visitor-region-mode]").forEach(btn => btn.addEventListener("click", () => {
+    state.analyticsVisitorRegionMode = btn.dataset.visitorRegionMode;
+    render();
+  }));
+  $$("[data-visitor-env-dimension]").forEach(btn => btn.addEventListener("click", () => {
+    state.analyticsVisitorEnvDimension = btn.dataset.visitorEnvDimension;
+    render();
+  }));
   $$("[data-trend-metric]").forEach(btn => btn.addEventListener("click", () => {
     state.analyticsTrendMetric = btn.dataset.trendMetric;
     render();
   }));
+  $("[data-trend-select]")?.addEventListener("change", event => {
+    state.analyticsTrendMetric = event.target.value;
+    render();
+  });
   bindAnalyticsTrendInteractions();
   $$("[data-open-editor]").forEach(card => card.addEventListener("click", () => { startGenerationFlow(); }));
   $("#generateSite")?.addEventListener("click", () => { startGenerationFlow(); });
