@@ -566,7 +566,7 @@ function renderLogin() {
     <main class="login-shell">
       <section class="login-card-wrap">
         <div class="brand-head">
-          <div class="logo-box"><img src="assets/ai-avatar.png" alt="AI" /></div>
+          <div class="logo-box logo-box-wide"><img src="assets/360-zhiwang-logo.png" alt="360智网" /></div>
           <h1>AI 智能建站</h1>
           <p>上传企业资料，AI 为您生成专业企业官网</p>
         </div>
@@ -592,8 +592,8 @@ function renderAuthed() {
   if (state.section === "editor") return renderEditor();
   return `
     <header class="app-header">
-      <button class="brand-chip" data-section="geo" type="button" aria-label="返回 GEO Studio 首页">
-        <span>G</span><strong>GEO Studio</strong>
+      <button class="brand-chip" data-section="geo" type="button" aria-label="返回 360智网 首页">
+        <img src="assets/360-zhiwang-logo.png" alt="360智网" />
       </button>
       ${renderTopNav()}
       <span class="phone-mask">${maskPhone(state.phone)}</span>
