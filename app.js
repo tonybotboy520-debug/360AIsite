@@ -4,22 +4,31 @@ const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selec
 const params = new URLSearchParams(location.search);
 
 const navItems = [
-  { id: "geo", label: "GEO工作台" },
-  { id: "knowledge", label: "企业知识库" },
-  { id: "site", label: "生成官网" },
-  { id: "publish", label: "发布与域名" },
-  { id: "analytics", label: "数据分析" }
+  { id: "home", label: "首页", icon: "i-home" },
+  { id: "knowledge", label: "企业知识库", icon: "i-doc-list" },
+  { id: "site", label: "生成官网", icon: "i-site-window" },
+  { id: "publish", label: "发布与域名", icon: "i-globe" },
+  { id: "analytics", label: "数据分析", icon: "i-chart-bars" }
 ];
 
-const savedSection = localStorage.getItem("clone_section");
-const requestedSection = params.get("section");
+const sectionAliases = { geo: "home", workbench: "home" };
+const normalizeSection = section => sectionAliases[section] || section;
+const savedSection = normalizeSection(localStorage.getItem("clone_section"));
+const requestedSection = normalizeSection(params.get("section"));
 const availableSections = new Set([...navItems.map(item => item.id), "editor"]);
-const normalizedSavedSection = savedSection === "knowledge" ? "geo" : savedSection;
 const initialSection = availableSections.has(requestedSection)
   ? requestedSection
-  : availableSections.has(normalizedSavedSection)
-    ? normalizedSavedSection
-    : "geo";
+  : availableSections.has(savedSection)
+    ? savedSection
+    : "home";
+const pickParam = (names, allowed, fallback) => {
+  const keys = Array.isArray(names) ? names : [names];
+  for (const key of keys) {
+    const value = params.get(key);
+    if (allowed.includes(value)) return value;
+  }
+  return fallback;
+};
 
 const state = {
   loggedIn: params.get("demo") === "1" || localStorage.getItem("clone_auth") === "1",
@@ -29,14 +38,16 @@ const state = {
   kbManagePage: params.get("kbManage") || null,
   urlHelper: false,
   navMenuOpen: false,
-  analyticsTab: "traffic",
+  analyticsTab: pickParam(["analyticsTab", "analytics"], ["traffic", "geo", "seo"], "traffic"),
   trafficAnalyticsTab: "overview",
+  geoAnalyticsTab: pickParam(["geoAnalyticsTab", "geoTab"], ["overview", "pages", "crawler"], "overview"),
+  geoAnalyticsPage: pickParam("geoPage", ["solutions", "home", "products", "cases", "faq"], "solutions"),
   analyticsTrendMetric: "pv",
   analyticsTrendCompare: "previous",
   analyticsPageReportTab: "overview",
   analyticsVisitorRegionMode: "province",
   analyticsVisitorEnvDimension: "browser",
-  selectedPublishStep: 3,
+  selectedPublishStep: 2,
   generationPhase: 0,
   generationSubphase: "pause",
   generationCountdown: 15,
@@ -58,6 +69,9 @@ let generationTimer = null;
 let generationTick = null;
 let generationDeadline = 0;
 let scheduledGenerationKey = "";
+let navMotionFromSection = null;
+let navMotionResizeBound = false;
+let navMotionResizeFrame = 0;
 
 const analyticsTrendLabels = ["05/21", "05/22", "05/23", "05/24", "05/25", "05/26", "05/27"];
 
@@ -209,124 +223,76 @@ const buildStyles = [
 
 const publishSteps = [
   {
-    title: "上线方式确认",
-    tag: "路径选择",
-    desc: "先判断客户是否需要中国大陆可访问、是否接受备案周期，以及是否有海外访问诉求。这个选择会直接决定后续是否需要 ICP 备案、选择哪个云资源和 DNS 策略。",
-    chip: "建议：大陆客户优先大陆部署",
+    title: "确认上线路径",
+    tag: "路径",
+    desc: "本次官网面向中国大陆客户，走大陆托管、ICP备案、HTTPS 发布路径；海外访问先作为后续加速项保留。",
+    chip: "大陆官网发布",
     status: "完成",
     tone: "done",
-    tasks: ["确认目标访问区域：大陆 / 港澳台 / 海外", "确认网站类型：企业展示站 / 营销站 / 交易站", "确认是否涉及前置审批行业", "生成对应上线路径和预计周期"],
-    fields: ["访问区域", "网站类型", "行业类型", "预计上线时间"],
-    guides: ["用决策树告诉客户为什么大陆部署通常需要备案", "标注不同路径的预计周期、成本和风险"],
-    links: [["工信部备案系统", "https://beian.miit.gov.cn/"], ["阿里云备案概述", "https://help.aliyun.com/zh/icp-filing/basic-icp-service/user-guide/icp-filing-application-overview"]],
-    examples: ["B2B 企业展示站：大陆云服务器 + ICP 备案 + 公安备案"],
-    checks: [["pass", "网站类型已确认", "企业展示站", "通过"], ["pass", "目标区域已确认", "主要面向中国大陆客户", "通过"], ["warn", "前置审批判断", "需客户确认是否涉及新闻、出版等内容", "待确认"]],
-    preview: "上线方式确认后，系统会生成一条主流程，不同流程下隐藏不相关步骤，降低客户理解成本。"
+    tasks: ["确认主要访问区域为中国大陆", "确认企业展示站不涉及前置审批内容", "输出备案与发布的预计周期"],
+    fields: ["访问区域", "网站类型", "接入商", "预计上线日"],
+    checks: [["pass", "访问区域", "中国大陆客户为主", "通过"], ["pass", "网站类型", "企业展示站", "通过"], ["pass", "发布路径", "大陆托管 + 备案", "通过"]],
+    preview: "路径确认后，页面只保留与当前路径有关的域名、备案、DNS 和发布动作。"
   },
   {
-    title: "域名准备与实名",
-    tag: "域名资产",
-    desc: "客户需要拥有可用于企业官网的域名，并完成域名实名认证。系统需要提示域名所有者最好与备案主体一致，避免后续备案被退回。",
-    chip: "当前状态：域名实名已通过",
+    title: "校验域名主体",
+    tag: "域名",
+    desc: "确认主域名、备用域名和企业实名主体，优先保证域名所有者与备案主体一致，减少备案退回风险。",
+    chip: "主体一致",
     status: "完成",
     tone: "done",
-    tasks: ["录入主域名和备用域名", "校验域名实名状态", "比对域名所有者与企业主体", "确认是否需要购买或转入域名"],
-    fields: ["主域名", "域名注册商", "实名主体", "到期时间"],
-    guides: ["说明域名实名、备案主体、网站负责人之间的关系", "提醒域名有效期和所有权风险"],
-    links: [["工信部备案系统", "https://beian.miit.gov.cn/"], ["腾讯云备案文档", "https://cloud.tencent.com/document/product/243/97673"]],
-    examples: ["www.zhizao-demo.cn 已实名，主体为智造科技有限公司"],
-    checks: [["pass", "域名格式", "www.zhizao-demo.cn", "通过"], ["pass", "实名状态", "企业实名已完成", "通过"], ["pass", "到期时间", "剩余 296 天", "通过"]],
-    preview: "域名准备完成后，后续备案、DNS 解析和 SSL 证书都将围绕主域名展开。"
+    tasks: ["录入主域名 www.zhizao-demo.cn", "核对域名实名主体与企业主体", "检查域名到期时间和解析权限"],
+    fields: ["主域名", "注册商", "实名主体", "到期时间"],
+    checks: [["pass", "域名格式", "www.zhizao-demo.cn", "通过"], ["pass", "企业实名", "智造科技有限公司", "通过"], ["pass", "有效期", "剩余 296 天", "通过"]],
+    preview: "域名主体确认后，ICP备案、SSL 证书和 DNS 绑定都围绕这个主域名推进。"
   },
   {
-    title: "服务器 / 托管资源",
-    tag: "接入资源",
-    desc: "如果使用中国大陆节点上线，通常需要准备可备案的云服务器或托管资源。页面要把资源类型、地域、公网 IP、接入商备案要求展示清楚。",
-    chip: "当前状态：大陆资源已绑定",
-    status: "完成",
-    tone: "done",
-    tasks: ["选择接入商与大陆地域资源", "确认资源是否满足备案条件", "记录公网 IP 或托管 CNAME", "生成接入商备案入口"],
-    fields: ["云服务商", "地域", "资源类型", "公网 IP / CNAME"],
-    guides: ["解释为什么境外服务器不能办理大陆备案", "说明后续新增接入场景"],
-    links: [["阿里云备案前准备", "https://help.aliyun.com/zh/icp-filing/basic-icp-service/support/for-the-record-process-faq"], ["华为云备案准备", "https://support.huaweicloud.com/prepare-icp/"]],
-    examples: ["阿里云华东节点 ECS，具备备案服务号和公网 IP"],
-    checks: [["pass", "资源地域", "中国大陆节点", "通过"], ["pass", "公网访问能力", "已配置公网 IP", "通过"], ["warn", "备案服务号", "等待接入商确认", "待确认"]],
-    preview: "资源准备完成后，系统可以把服务器信息自动带入 ICP 备案资料清单。"
-  },
-  {
-    title: "ICP备案",
-    tag: "管局审核",
-    desc: "确认域名、主体和大陆托管资源后，进入接入商备案系统提交 ICP 备案。这个阶段要把需要客户提供和系统可自动读取的资料拆清楚，避免企业客户不知道下一步要做什么。",
-    chip: "当前卡点：等待短信核验",
+    title: "补齐备案资料",
+    tag: "备案",
+    desc: "把客户要提交的材料拆成清单：企业证照、负责人信息、网站名称、接入资源和短信核验状态。",
+    chip: "等待短信核验",
     status: "进行中",
     tone: "active",
-    tasks: ["选择首次备案 / 新增网站 / 新增接入", "填写主体负责人和网站负责人信息", "上传营业执照、负责人证件和核验材料", "完成工信部短信核验并等待管局审核"],
+    tasks: ["补齐主体负责人和网站负责人信息", "上传营业执照、证件和核验材料", "提醒负责人完成工信部短信核验"],
     fields: ["备案类型", "主体名称", "网站名称", "负责人手机号"],
-    guides: ["分步骤展示接入商初审、短信核验、管局审核", "提醒备案期间网站访问策略和资料一致性"],
-    links: [["工信部备案系统", "https://beian.miit.gov.cn/"], ["阿里云 ICP 备案流程", "https://help.aliyun.com/zh/icp-filing/basic-icp-service/user-guide/icp-filing-application-overview"], ["腾讯云首次备案", "https://cloud.tencent.com/document/product/243/97673"]],
-    examples: ["企业官网备案信息填写样例", "网站底部 ICP 备案号展示样式"],
-    checks: [["pass", "备案资料", "主体资料已补齐", "通过"], ["warn", "短信核验", "负责人尚未完成短信确认", "待处理"], ["warn", "管局审核", "短信核验后进入审核", "等待"], ["pass", "网站名称", "与企业展示站内容匹配", "通过"]],
-    preview: "ICP备案未完成前，大陆服务器绑定域名后仍不建议开放正式访问。系统会保留预览地址和生产版本，待备案通过后再开启发布。"
+    checks: [["pass", "主体资料", "营业执照与负责人信息已补齐", "通过"], ["warn", "短信核验", "负责人尚未确认", "待处理"], ["warn", "管局审核", "短信核验后进入审核", "等待"]],
+    preview: "ICP备案未完成前，正式域名不会开放公网访问，系统保留预览地址和待发布版本。"
   },
   {
-    title: "公安联网备案",
-    tag: "公网安备",
-    desc: "网站正式联通后，需要根据要求完成公安联网备案。页面应提示客户备案入口、资料项、备案编号图标下载和网站底部展示位置。",
-    chip: "当前状态：待 ICP 通过后办理",
+    title: "配置 DNS 与证书",
+    tag: "解析",
+    desc: "备案通过后生成 CNAME、TXT 校验和 HTTPS 证书配置，让客户按注册商教程完成解析。",
+    chip: "等待备案通过",
     status: "待办",
     tone: "pending",
-    tasks: ["进入全国互联网安全管理服务平台", "新增主体和网站备案信息", "提交网站负责人、域名、服务器信息", "审核通过后下载备案编号图标并展示"],
-    fields: ["公安备案账号", "网站开通日期", "接入服务商", "备案编号"],
-    guides: ["说明网站正式联通后 30 日内办理的要求", "展示备案编号图标放置在页脚的位置"],
-    links: [["公安备案入口", "https://beian.mps.gov.cn/"], ["公安备案说明", "https://gaj.cngy.gov.cn/info/1328/11620.htm"]],
-    examples: ["页脚展示公网安备编号和跳转链接"],
-    checks: [["warn", "ICP 前置状态", "待 ICP 备案通过", "等待"], ["warn", "公安账号", "客户尚未授权", "待处理"], ["warn", "页脚展示", "待获取备案编号", "待处理"]],
-    preview: "公安联网备案完成后，网站页脚会展示对应编号和链接，状态校验会检查是否正确跳转。"
+    tasks: ["生成 CNAME 与 TXT 校验记录", "检测 DNS 是否生效", "签发 SSL 证书并开启 HTTPS"],
+    fields: ["CNAME 记录", "TXT 校验值", "TTL", "HTTPS 状态"],
+    checks: [["warn", "CNAME", "待客户配置", "待处理"], ["warn", "TXT 校验", "记录未检测到", "等待"], ["warn", "SSL", "DNS 生效后签发", "等待"]],
+    preview: "DNS 生效后，正式域名会自动绑定到当前生产版本，并开启 www 与裸域跳转。"
   },
   {
-    title: "网站部署与发布",
-    tag: "生产版本",
-    desc: "将已生成的官网内容发布为生产版本，配置 SSL、回滚点、静态资源和表单收件能力。",
-    chip: "当前状态：待备案通过",
+    title: "发布生产版本",
+    tag: "发布",
+    desc: "把已确认的网站内容生成生产版本，检查表单、地图、下载文件、GEO 内容和回滚点。",
+    chip: "待正式发布",
     status: "待办",
     tone: "pending",
-    tasks: ["生成生产版本 v1.0", "配置 SSL 证书和 HTTPS 强制跳转", "检查表单、留资、地图、下载文件", "生成回滚点和发布记录"],
-    fields: ["发布版本", "SSL 类型", "回滚版本", "表单接收人"],
-    guides: ["展示发布前检查清单", "说明发布失败时如何回滚到上一版本"],
-    links: [["SSL 证书说明", "https://help.aliyun.com/zh/ssl-certificate/"], ["DNSPod 文档", "https://docs.dnspod.cn/"]],
-    examples: ["v1.0 生产发布记录和回滚按钮"],
-    checks: [["warn", "生产版本", "尚未生成", "待处理"], ["warn", "SSL 证书", "待域名绑定后签发", "等待"], ["pass", "表单配置", "留资接收邮箱已配置", "通过"]],
-    preview: "发布完成后，会得到一个带版本号的生产站点，并保留上一版用于紧急回滚。"
+    tasks: ["生成生产版本 v1.0", "检查表单接收人和按钮链接", "保存发布记录与回滚点"],
+    fields: ["发布版本", "表单接收人", "回滚版本", "发布时间"],
+    checks: [["pass", "GEO 内容", "结构化摘要已生成", "通过"], ["pass", "表单配置", "留资邮箱已配置", "通过"], ["warn", "生产版本", "等待域名条件满足", "待发布"]],
+    preview: "生产版本发布后，客户可以在同一页看到当前版本、上一个可回滚版本和发布人。"
   },
   {
-    title: "DNS 解析与绑定",
-    tag: "域名切换",
-    desc: "将客户域名解析到平台发布地址，并校验 CNAME、A 记录、TXT 验证和 HTTPS 访问是否生效。",
-    chip: "当前状态：等待生产地址",
+    title: "完成上线验收",
+    tag: "验收",
+    desc: "最终只看能否访问、备案号是否展示、HTTPS 是否可用、移动端是否正常、搜索资源是否提交。",
+    chip: "生成验收单",
     status: "待办",
     tone: "pending",
-    tasks: ["生成 CNAME / A / TXT 记录", "引导客户到域名注册商控制台配置", "轮询 DNS 生效状态", "绑定主域名并设置 www / 裸域跳转"],
-    fields: ["CNAME 记录", "TXT 校验值", "TTL", "裸域策略"],
-    guides: ["展示不同注册商的 DNS 配置教程", "解释 DNS 生效通常需要等待"],
-    links: [["DNSPod 文档", "https://docs.dnspod.cn/"], ["阿里云云解析 DNS", "https://help.aliyun.com/zh/dns/"]],
-    examples: ["CNAME www publish.360zhiwang.com", "TXT @ 360zw-verify=82ca19"],
-    checks: [["warn", "CNAME", "记录未检测到", "待配置"], ["warn", "TXT 校验", "记录未检测到", "待配置"], ["warn", "HTTPS", "待 DNS 生效后签发", "等待"]],
-    preview: "DNS 生效后，系统会自动把预览站点切换为正式域名访问。"
-  },
-  {
-    title: "上线体检",
-    tag: "验收报告",
-    desc: "最终检查外网可访问、备案号展示、HTTPS、移动端、SEO、sitemap、robots、表单留资和 GEO 内容是否正常。",
-    chip: "最终目标：公网访问成功",
-    status: "待办",
-    tone: "pending",
-    tasks: ["从外网访问主域名并截图留档", "检查 ICP 与公安备案号页脚展示", "校验 sitemap、robots、TDK 和结构化数据", "提交百度、360、搜狗等搜索资源平台"],
-    fields: ["主域名状态", "HTTPS 状态", "备案号展示", "搜索提交状态"],
-    guides: ["用体检报告告诉客户哪些项已通过", "把未通过项拆成可直接处理的任务"],
-    links: [["百度搜索资源平台", "https://ziyuan.baidu.com/"], ["360 搜索资源平台", "https://zhanzhang.so.com/"], ["搜狗资源平台", "https://zhanzhang.sogou.com/"]],
-    examples: ["上线验收报告 PDF", "搜索引擎提交记录"],
-    checks: [["warn", "外网访问", "待 DNS 生效", "等待"], ["warn", "备案展示", "待备案号返回", "等待"], ["pass", "GEO 内容", "结构化摘要已生成", "通过"], ["pass", "移动端", "页面布局检查通过", "通过"]],
-    preview: "所有体检项通过后，页面会显示“公网访问成功”，并生成给客户确认的上线验收报告。"
+    tasks: ["外网打开主域名并截图留档", "检查 ICP 与公安备案号展示", "提交 sitemap 到搜索资源平台"],
+    fields: ["外网访问", "备案号展示", "HTTPS", "搜索提交"],
+    checks: [["warn", "外网访问", "待 DNS 生效", "等待"], ["warn", "备案展示", "待备案号返回", "等待"], ["pass", "移动端", "布局检查通过", "通过"]],
+    preview: "所有验收项通过后，页面显示“公网访问成功”，并生成给客户确认的上线验收记录。"
   }
 ];
 
@@ -341,19 +307,19 @@ const ownedSites = [
   {
     name: "深圳市东星制冷机电有限公司官网",
     type: "企业官网",
-    status: "编辑中",
+    status: "已发布",
+    created: "2026-05-20",
     updated: "2026-05-25",
     pages: 8,
-    leads: 0,
     desc: "工业制冷恒温设备源头制造商，覆盖首页、产品中心、案例与联系页面。"
   },
   {
     name: "深圳市东星制冷机电有限公司官网新版",
     type: "企业官网",
     status: "草稿",
+    created: "2026-05-22",
     updated: "2026-05-22",
     pages: 5,
-    leads: 3,
     desc: "企业官网新版草稿，正在调整首页、产品中心、案例和联系方式。"
   }
 ];
@@ -364,24 +330,24 @@ function icon(id, cls = "icon") {
 
 function renderTopNav() {
   const activeNavItem = navItems.find(item => item.id === state.section);
-  const primaryIds = ["geo", "knowledge", "site"];
+  const primaryIds = ["home", "knowledge"];
   const compactIds = activeNavItem && !primaryIds.includes(activeNavItem.id)
     ? [...primaryIds.slice(0, 2), activeNavItem.id]
     : primaryIds;
   const compactVisible = navItems.filter(item => compactIds.includes(item.id));
   const compactHidden = navItems.filter(item => !compactIds.includes(item.id));
-  const navButton = item => `<button class="${state.section === item.id ? "active" : ""}" data-section="${item.id}" type="button">${item.label}</button>`;
+  const navButton = (item, role = "") => `<button class="${state.section === item.id ? "active" : ""}" data-section="${item.id}" type="button" ${role}>${icon(item.icon)}<span>${item.label}</span></button>`;
 
   return `
     <nav class="top-nav ${state.navMenuOpen ? "menu-open" : ""}" aria-label="主导航">
-      <div class="nav-full">${navItems.map(navButton).join("")}</div>
+      <div class="nav-full nav-motion-track"><span class="nav-motion-bg" aria-hidden="true"></span>${navItems.map(navButton).join("")}</div>
       <div class="nav-compact">
-        <div class="nav-visible">${compactVisible.map(navButton).join("")}</div>
+        <div class="nav-visible nav-motion-track"><span class="nav-motion-bg" aria-hidden="true"></span>${compactVisible.map(navButton).join("")}</div>
         <button class="nav-menu-toggle" data-nav-menu type="button" aria-label="展开更多导航" aria-expanded="${state.navMenuOpen}">
           ${icon("i-chevron-down")}
         </button>
         <div class="nav-dropdown" role="menu">
-          ${compactHidden.map(item => `<button class="${state.section === item.id ? "active" : ""}" data-section="${item.id}" type="button" role="menuitem">${item.label}</button>`).join("")}
+          ${compactHidden.map(item => navButton(item, 'role="menuitem"')).join("")}
         </div>
       </div>
     </nav>
@@ -391,7 +357,78 @@ function renderTopNav() {
 function render() {
   $("#app").innerHTML = state.loggedIn ? renderAuthed() : renderLogin();
   bindEvents();
+  initTopNavMotion();
   scheduleGenerationFlow();
+}
+
+function moveNavIndicator(track, button) {
+  const indicator = $(".nav-motion-bg", track);
+  if (!indicator || !button || track.offsetWidth === 0) {
+    track.style.setProperty("--nav-indicator-opacity", "0");
+    return;
+  }
+  const trackRect = track.getBoundingClientRect();
+  const buttonRect = button.getBoundingClientRect();
+  track.style.setProperty("--nav-indicator-x", `${buttonRect.left - trackRect.left}px`);
+  track.style.setProperty("--nav-indicator-w", `${buttonRect.width}px`);
+  track.style.setProperty("--nav-indicator-opacity", "1");
+}
+
+function animateNavIndicator(track, targetButton, fromButton) {
+  if (!targetButton) return;
+  if (!fromButton || fromButton === targetButton || track.offsetWidth === 0) {
+    moveNavIndicator(track, targetButton);
+    return;
+  }
+  track.classList.add("nav-motion-primed");
+  moveNavIndicator(track, fromButton);
+  track.offsetWidth;
+  track.classList.remove("nav-motion-primed");
+  requestAnimationFrame(() => moveNavIndicator(track, targetButton));
+}
+
+function syncTopNavMotion() {
+  $$(".nav-motion-track").forEach(track => {
+    if (track.offsetWidth === 0) return;
+    const targetButton = $("button.active", track) || $("button[data-section]", track);
+    moveNavIndicator(track, targetButton);
+  });
+}
+
+function initTopNavMotion() {
+  const tracks = $$(".nav-motion-track");
+  if (!tracks.length) return;
+  const fromSection = navMotionFromSection;
+
+  requestAnimationFrame(() => {
+    tracks.forEach(track => {
+      const activeButton = $("button.active", track) || $("button[data-section]", track);
+      const fromButton = fromSection ? $(`button[data-section="${fromSection}"]`, track) : null;
+      animateNavIndicator(track, activeButton, fromButton);
+    });
+    navMotionFromSection = null;
+  });
+
+  tracks.forEach(track => {
+    $$("button[data-section]", track).forEach(button => {
+      button.addEventListener("mouseenter", () => moveNavIndicator(track, button));
+      button.addEventListener("focus", () => moveNavIndicator(track, button));
+    });
+    track.addEventListener("mouseleave", () => moveNavIndicator(track, $("button.active", track)));
+    track.addEventListener("focusout", () => {
+      setTimeout(() => {
+        if (!track.contains(document.activeElement)) moveNavIndicator(track, $("button.active", track));
+      }, 0);
+    });
+  });
+
+  if (!navMotionResizeBound) {
+    navMotionResizeBound = true;
+    window.addEventListener("resize", () => {
+      cancelAnimationFrame(navMotionResizeFrame);
+      navMotionResizeFrame = requestAnimationFrame(syncTopNavMotion);
+    });
+  }
 }
 
 function startGenerationFlow() {
@@ -592,11 +629,12 @@ function renderAuthed() {
   if (state.section === "editor") return renderEditor();
   return `
     <header class="app-header">
-      <button class="brand-chip" data-section="geo" type="button" aria-label="返回 360智网 首页">
-        <img src="assets/360-zhiwang-logo.png" alt="360智网" />
+      <button class="brand-chip" data-section="home" type="button" aria-label="返回 360智网 首页">
+        <span class="brand-mark">${icon("i-globe")}</span>
+        <strong>360<span>智网</span></strong>
       </button>
       ${renderTopNav()}
-      <span class="phone-mask">${maskPhone(state.phone)}</span>
+      <span class="phone-mask">${icon("i-phone-call")}${maskPhone(state.phone)}</span>
       <button class="logout-icon" id="logout" type="button" aria-label="退出登录">${icon("i-log-out")}</button>
     </header>
     <main class="app-main">${renderSection()}</main>
@@ -605,9 +643,9 @@ function renderAuthed() {
 
 function renderSection() {
   return {
+    home: renderHomePage,
     knowledge: renderKnowledgePage,
     site: renderSitePage,
-    geo: renderGeoWorkbench,
     publish: renderPublishPage,
     analytics: renderAnalyticsPage,
     settings: renderSettingsPage
@@ -616,6 +654,173 @@ function renderSection() {
 
 function pageHead(title, desc, right = "") {
   return `<div class="page-head"><div><h1>${title}</h1><p>${desc}</p></div>${right}</div>`;
+}
+
+function workbenchKpi(label, value, note, tone = "up", accent = "") {
+  return `
+    <article class="workbench-kpi ${accent}">
+      <div>
+        <span>${label}</span>
+        <strong>${value}</strong>
+        <small>${note}</small>
+      </div>
+      ${miniTrend(tone)}
+    </article>
+  `;
+}
+
+function renderWorkbenchTask(task) {
+  const action = task.editor
+    ? `<button class="ghost slim" data-open-editor type="button">${task.action}</button>`
+    : `<button class="ghost slim" data-section="${task.section}" type="button">${task.action}</button>`;
+  return `
+    <div class="workbench-todo-row ${task.tone || ""}">
+      <em>${task.priority}</em>
+      <div>
+        <b>${task.title}</b>
+        <span>${task.desc}</span>
+      </div>
+      <small>${task.source}</small>
+      ${action}
+    </div>
+  `;
+}
+
+function renderWorkbenchModuleCard(module) {
+  const action = module.editor
+    ? `<button class="primary slim" data-open-editor type="button">${module.action} ${icon("i-arrow")}</button>`
+    : `<button class="primary slim" data-section="${module.section}" type="button">${module.action} ${icon("i-arrow")}</button>`;
+  return `
+    <article class="workbench-module-card ${module.tone || ""}">
+      <div class="workbench-module-top">
+        <i>${icon(module.icon)}</i>
+        <span>${module.status}</span>
+      </div>
+      <h2>${module.title}</h2>
+      <p>${module.desc}</p>
+      <div class="workbench-module-bottom">
+        <strong>${module.metric}</strong>
+        ${action}
+      </div>
+    </article>
+  `;
+}
+
+function renderHomePage() {
+  return `
+    <section class="workbench-page workbench-lite">
+      <section class="home-hero" aria-label="当前站点概览">
+        <div class="home-hero-copy">
+          <div class="home-breadcrumb"><span>首页</span><i>/</i><span>当前站点</span></div>
+          <h1><span>深圳市东星制冷机电</span><span>有限公司官网</span></h1>
+          <p>只展示当前官网最关键的资料、页面、发布和数据概况。</p>
+          <div class="home-hero-meta" aria-label="站点信息">
+            <span>${icon("i-calendar")} 最近更新：2024-05-24 10:30</span>
+            <span>${icon("i-user-round")} 负责人：张三</span>
+          </div>
+        </div>
+        <div class="home-hero-art" aria-hidden="true">
+          <div class="home-doc-illus">
+            <i></i>
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+          <b>${icon("i-check-circle")}</b>
+        </div>
+        <button class="primary home-edit-btn" data-open-editor type="button">${icon("i-edit")} 继续编辑官网</button>
+      </section>
+
+      <section class="workbench-lite-grid" aria-label="首页概览">
+        <article class="workbench-lite-card home-card home-card-knowledge">
+          <div class="home-card-copy">
+            <div class="lite-card-head">
+              <i class="tone-blue">${icon("i-doc-list")}</i>
+              <div><h2>企业知识库</h2><span>${icon("i-check-circle")} 资料已入库</span></div>
+            </div>
+            <div class="home-big-number"><strong>42</strong><b>项字段</b></div>
+            <p>来自官网、产品画册、资质和联系方式等 21 个资料来源。</p>
+            <div class="lite-card-meta">
+              <span class="pill-blue"><b>产品参数待补</b><strong>6 项</strong></span>
+              <span class="pill-green"><b>案例资料</b><strong>4 条</strong></span>
+            </div>
+            <button class="ghost slim" data-section="knowledge" type="button">查看知识库 ${icon("i-arrow")}</button>
+          </div>
+          <div class="home-folder-illus" aria-hidden="true">
+            <span></span><span></span><span></span>
+            <i class="float-doc one">${icon("i-doc-list")}</i>
+            <i class="float-doc two">${icon("i-edit")}</i>
+            <i class="float-doc three">${icon("i-chart-bars")}</i>
+          </div>
+        </article>
+
+        <article class="workbench-lite-card home-card home-card-pages">
+          <div class="home-card-copy">
+            <div class="lite-card-head">
+              <i class="tone-green">${icon("i-site-window")}</i>
+              <div><h2>官网页面</h2><span>页面结构</span></div>
+            </div>
+            <div class="home-big-number"><b>共</b><strong>8</strong><b>个页面</b></div>
+            <p>首页、产品中心、解决方案、案例中心、FAQ、关于我们、新闻资讯、联系我们。</p>
+            <div class="lite-card-meta">
+              <span class="pill-green">${icon("i-check-circle")} 6 个已发布</span>
+              <span class="pill-blue">${icon("i-site-window")} 1 个草稿</span>
+              <span class="pill-orange">${icon("i-refresh")} 1 个待生成</span>
+            </div>
+            <button class="ghost slim" data-section="site" type="button">查看官网 ${icon("i-arrow")}</button>
+          </div>
+          <div class="home-pages-illus" aria-hidden="true">
+            <span class="page-back"></span>
+            <span class="page-mid"></span>
+            <span class="page-front"><i></i><b></b><b></b><em></em></span>
+          </div>
+        </article>
+
+        <article class="workbench-lite-card home-card home-card-publish">
+          <div class="home-card-copy">
+            <div class="lite-card-head">
+              <i class="tone-violet">${icon("i-globe")}</i>
+              <div><h2>域名与发布</h2><span>发布状态</span></div>
+            </div>
+            <div class="home-domain-line"><strong>www.dongxing-sz.com</strong><em>${icon("i-shield")}</em></div>
+            <p>当前预览可用，正式上线流程停在 ICP 备案短信核验。</p>
+            <div class="lite-card-meta">
+              <span class="pill-green progress-pill"><i></i> 上线完成 63%</span>
+              <span class="pill-blue">${icon("i-shield")} SSL 待配置</span>
+              <span class="pill-orange">${icon("i-refresh")} DNS 待绑定</span>
+            </div>
+            <button class="ghost slim" data-section="publish" type="button">查看发布 ${icon("i-arrow")}</button>
+          </div>
+          <div class="home-globe-illus" aria-hidden="true">
+            <div class="globe-core"><i></i><i></i><i></i></div>
+            <span class="orbit"></span>
+            <span class="globe-shadow"></span>
+          </div>
+        </article>
+
+        <article class="workbench-lite-card home-card home-card-analysis">
+          <div class="home-card-copy">
+            <div class="lite-card-head">
+              <i class="tone-blue">${icon("i-chart-bars")}</i>
+              <div><h2>数据分析</h2><span>近 7 天概况</span></div>
+            </div>
+            <div class="home-chart-line" aria-hidden="true">
+              <svg viewBox="0 0 330 82" preserveAspectRatio="none">
+                <path d="M0 76 L330 76" />
+                <polyline points="0,70 28,62 52,54 76,46 100,52 124,38 148,45 174,30 198,42 222,22 246,8 270,18 294,16 318,10 330,2" />
+              </svg>
+            </div>
+            <div class="lite-analysis-list">
+              <div><b>${icon("i-chart-bars")} 访问分析</b><strong>12,480 <small>PV</small></strong><span class="rise">环比 +18% ${icon("i-arrow")}</span></div>
+              <div><b>${icon("i-bot")} GEO 分析</b><strong>82 <small>分</small></strong><span class="bot-hit">${icon("i-bot")} AI Bot 抓取 186 次</span></div>
+              <div><b>${icon("i-search-chart")} SEO 分析</b><strong>76 <small>分</small></strong><span class="warn-hit">${icon("i-refresh")} 3 个重点页待收录</span></div>
+            </div>
+            <button class="ghost slim" data-section="analytics" type="button">查看分析 ${icon("i-arrow")}</button>
+          </div>
+        </article>
+      </section>
+    </section>
+  `;
 }
 
 function renderKnowledgePage() {
@@ -893,17 +1098,20 @@ function renderSitePage() {
       <div class="site-grid">
         ${ownedSites.map(site => `
           <button class="site-item owned-site-card" data-open-editor type="button">
-            <div class="site-card-top"><span>${site.status}</span><small>${site.type}</small></div>
+            <div class="site-card-top"><span class="${site.status === "已发布" ? "published" : "draft"}">${site.status}</span><small>${site.type}</small></div>
             <h3>${site.name}</h3>
             <p>${site.desc}</p>
-            <div class="site-card-meta"><b>${site.pages}</b><small>页面</small><b>${site.leads}</b><small>留资</small><em>${site.updated}</em></div>
+            <div class="site-card-meta">
+              <div><b>${site.pages}</b><small>页面</small></div>
+              <time><small>创建时间</small><em>${site.created}</em></time>
+              <time><small>修改时间</small><em>${site.updated}</em></time>
+            </div>
           </button>
         `).join("")}
         <button class="site-item site-create-card" data-create-site type="button">
           <b>${icon("i-plus")}</b>
           <h3>添加官网</h3>
           <p>基于企业知识库创建一个新的企业官网。</p>
-          <span>使用当前官网结构</span>
         </button>
       </div>
     </section>
@@ -1202,101 +1410,104 @@ function progress(label, value, tone = "") {
   return `<div class="progress-row"><span>${label}</span><b>${value}%</b><div class="bar"><i class="${tone}" style="width:${value}%"></i></div></div>`;
 }
 
-function renderGeoWorkbench() {
-  return `${pageHead("GEO 工作台", "诊断、改写、结构化、AI 可抓取效果闭环")}
-    <section class="stats-grid">${stat("GEO 总评分", "82", "较上次 +13 分", "good")}${stat("AI 问答覆盖", "47 / 68", "仍缺 21 个高频问题")}${stat("结构化模块", "9", "Schema、FAQ、产品参数")}${stat("待采纳改写", "18", "涉及 6 个页面", "warn")}</section>
-    <section class="grid-2"><div class="panel"><h2>页面诊断</h2>${progress("品牌实体一致性", 88, "ok")}${progress("问答式内容覆盖", 69, "mid")}${progress("结构化数据完整度", 76, "mid")}${progress("页面摘要可抓取性", 58, "bad")}</div><div class="panel"><h2>AI 改写队列</h2>${["首页首屏标题", "产品服务段落", "关于我们简介", "FAQ 模块"].map((v, i) => `<div class="queue ${i === 0 ? "selected" : ""}"><b>${v}</b><span>${i === 0 ? "补充工业视觉检测 / 自动化产线 / 数据采集实体" : "提升 AI 引用概率并补齐事实"}</span></div>`).join("")}</div></section>`;
-}
-
 function renderPublishPage() {
-  const current = publishSteps[state.selectedPublishStep] || publishSteps[3];
+  const current = publishSteps[state.selectedPublishStep] || publishSteps[2];
   const completed = publishSteps.filter(step => step.tone === "done").length;
+  const progressValue = Math.round(((completed + (current.tone === "active" ? 0.5 : 0)) / publishSteps.length) * 100);
+  const waitingCount = current.checks.filter(([tone]) => tone !== "pass").length;
   return `
-    <section class="publish-page">
-      <section class="publish-hero">
-        <div class="publish-hero-main">
-          <span>发布与域名 / 中国大陆上线向导</span>
-          <h1>把已生成的网站，从“可预览”推进到“公网可访问”</h1>
-          <p>页面按国内企业官网真实上线链路组织：先确认上线方式，再处理域名实名、托管资源、ICP备案、公安联网备案、部署发布、DNS 绑定和最终外网体检。每一步都提供任务指引、官方入口、教程材料、示例参考和右侧状态校验。</p>
-          <div class="publish-hero-actions">
-            <button class="primary slim" type="button">继续当前步骤</button>
-            <button class="ghost slim" type="button">生成上线清单</button>
-            <button class="ghost slim" type="button">查看客户示例</button>
+    <section class="publish-page publish-two-column">
+      <section class="publish-main-column">
+        <div class="publish-intro-panel">
+          <div>
+            <span>发布与域名</span>
+            <h1>把生成好的官网发布到正式域名</h1>
+            <p>页面只保留上线执行所需的信息：左侧管理流程与当前任务，右侧看域名、校验结果和正式访问状态。</p>
+          </div>
+          <div class="publish-action-row">
+            <button class="primary slim" type="button">${icon("i-refresh")}继续处理</button>
+            <button class="ghost slim" type="button">${icon("i-doc-list")}生成清单</button>
           </div>
         </div>
-        <aside class="launch-meter">
-          <div class="meter-head">
-            <div><span>上线完成度</span><strong>63%</strong></div>
-            <div class="meter-ring"><b>${completed + 2}/8</b></div>
-          </div>
-          <div class="meter-bars">
-            ${renderMeterRow("资料准备", 100, "ok")}
-            ${renderMeterRow("备案流程", 58, "mid")}
-            ${renderMeterRow("技术发布", 42, "")}
-          </div>
-        </aside>
-      </section>
 
-      <section class="launch-board">
-        <aside class="launch-steps">
-          <div class="launch-side-title"><h2>上线步骤</h2><span>8 个环节</span></div>
-          <div class="launch-step-list">
+        <div class="publish-progress-panel">
+          <div>
+            <span>上线进度</span>
+            <strong>${completed}/${publishSteps.length} 已完成</strong>
+          </div>
+          <div class="publish-progress-track"><i style="width:${progressValue}%"></i></div>
+          <b>${progressValue}%</b>
+        </div>
+
+        <div class="publish-step-grid">
             ${publishSteps.map((step, index) => `
-              <button class="launch-step ${step.tone} ${state.selectedPublishStep === index ? "active" : ""}" data-publish-step="${index}" type="button">
-                <b>${index + 1}</b>
-                <span><strong>${step.title}</strong><small>${step.tag}</small></span>
+              <button class="publish-step-card ${step.tone} ${state.selectedPublishStep === index ? "active" : ""}" data-publish-step="${index}" type="button">
+                <span>${String(index + 1).padStart(2, "0")}</span>
+                <strong>${step.title}</strong>
+                <small>${step.tag}</small>
                 <em>${step.status}</em>
               </button>
             `).join("")}
-          </div>
-        </aside>
+        </div>
 
-        <section class="launch-work">
-          <div class="launch-work-head">
+        <section class="publish-current-panel">
+          <div class="publish-current-head">
             <div>
-              <span>Step ${String(state.selectedPublishStep + 1).padStart(2, "0")}</span>
+              <span>当前步骤 ${String(state.selectedPublishStep + 1).padStart(2, "0")}</span>
               <h2>${current.title}</h2>
-              <p>${current.desc}</p>
             </div>
             <b>${current.chip}</b>
           </div>
-          <div class="launch-task-grid">
-            <div>
-              <div class="launch-block-head"><h3>明确任务指引</h3><small>${current.tasks.length} 项任务</small></div>
-              <div class="launch-task-list">${current.tasks.map(task => `<div class="launch-task"><i>✓</i><span><strong>${task}</strong><small>系统记录责任人、预计时间和是否需要客户提供资料。</small></span></div>`).join("")}</div>
-              <div class="launch-block-head field-head"><h3>需要填写的信息</h3><small>可做表单化</small></div>
-              <div class="launch-fields">${current.fields.map(field => `<div><b>${field}</b><span>支持录入、读取、校验和附件上传。</span></div>`).join("")}</div>
+          <p>${current.desc}</p>
+          <div class="publish-work-grid">
+            <div class="publish-task-block">
+              <div class="publish-block-title"><h3>下一步动作</h3><small>${current.tasks.length} 项</small></div>
+              ${current.tasks.map(task => `<div class="publish-task-row"><i>✓</i><span>${task}</span></div>`).join("")}
             </div>
-            <div>
-              <div class="launch-block-head"><h3>教程、链接与示例</h3><small>可跳转</small></div>
-              <div class="launch-guide-list">${current.guides.map(guide => `<div><b>${guide}</b><span>教程内容以右侧状态为上下文，只展示当前真正需要看的信息。</span></div>`).join("")}</div>
-              <div class="launch-link-list">${current.links.map(([label, url]) => `<div><span><b>${label}</b><small>${url}</small></span><a href="${url}" target="_blank" rel="noreferrer">打开</a></div>`).join("")}</div>
-              <div class="launch-example-list">${current.examples.map(example => `<div><b>${example}</b><span>点击后打开示例抽屉，展示填写方式或客户验收样张。</span></div>`).join("")}</div>
+            <div class="publish-field-block">
+              <div class="publish-block-title"><h3>需要确认的信息</h3><small>系统字段</small></div>
+              <div>${current.fields.map(field => `<span>${field}</span>`).join("")}</div>
             </div>
           </div>
         </section>
-
-        <aside class="launch-status">
-          <div class="status-head">
-            <div><h2>状态校验</h2><p>右侧固定展示当前步骤的系统检测结果和客户待处理项。</p></div>
-            <button class="primary slim" type="button">重新校验</button>
-          </div>
-          <div class="status-stack">${current.checks.map(([tone, title, desc, tag]) => `<div class="status-row ${tone}"><i>${tone === "pass" ? "✓" : tone === "error" ? "!" : "…"}</i><span><b>${title}</b><small>${desc}</small></span><em>${tag}</em></div>`).join("")}</div>
-          <div class="external-preview">
-            <div><span>外网访问预览</span><b>https://www.zhizao-demo.cn</b></div>
-            <strong>当前还不能正式访问</strong>
-            <p>${current.preview}</p>
-          </div>
-        </aside>
       </section>
 
-      <p class="launch-note">下一步可把右侧状态接入域名 Whois、DNS、证书、备案号、HTTP 可达性和页面合规检查，完成后生成客户可确认的上线验收报告。</p>
+      <aside class="publish-side-column">
+        <section class="publish-domain-panel">
+          <div class="publish-side-head">
+            <div><span>正式域名</span><h2>www.zhizao-demo.cn</h2></div>
+            <b>未开放</b>
+          </div>
+          <div class="publish-domain-list">
+            <div><span>主域名</span><strong>www.zhizao-demo.cn</strong><small>等待备案完成后切换生产流量</small></div>
+            <div><span>裸域策略</span><strong>zhizao-demo.cn</strong><small>301 跳转到 www</small></div>
+          </div>
+          <div class="publish-dns-box">
+            <span>待配置记录</span>
+            <code>CNAME  www  publish.360zhiwang.com</code>
+            <code>TXT  @  360zw-verify=82ca19</code>
+          </div>
+        </section>
+
+        <section class="publish-check-panel">
+          <div class="publish-side-head">
+            <div><span>当前校验</span><h2>${waitingCount ? `${waitingCount} 项待处理` : "全部通过"}</h2></div>
+            <button class="ghost slim" type="button">${icon("i-refresh")}重新校验</button>
+          </div>
+          <div class="publish-check-list">
+            ${current.checks.map(([tone, title, desc, tag]) => `<div class="publish-check-row ${tone}"><i>${tone === "pass" ? "✓" : tone === "error" ? "!" : "…"}</i><span><b>${title}</b><small>${desc}</small></span><em>${tag}</em></div>`).join("")}
+          </div>
+        </section>
+
+        <section class="publish-preview-panel">
+          <span>访问状态</span>
+          <h2>当前还不能正式访问</h2>
+          <p>${current.preview}</p>
+          <button class="primary slim" type="button">${icon("i-check-circle")}生成验收记录</button>
+        </section>
+      </aside>
     </section>
   `;
-}
-
-function renderMeterRow(label, value, tone = "") {
-  return `<div class="meter-row"><span>${label}</span><div class="bar"><i class="${tone}" style="width:${value}%"></i></div><b>${value}%</b></div>`;
 }
 
 function miniTrend(tone = "up") {
@@ -1387,9 +1598,9 @@ function renderOverviewTrendChart() {
 
 function renderAnalyticsPage() {
   const tabs = [
-    { id: "traffic", label: "访问统计" },
-    { id: "geo", label: "GEO 统计" },
-    { id: "seo", label: "SEO 统计" }
+    { id: "traffic", label: "访问分析" },
+    { id: "geo", label: "GEO 分析" },
+    { id: "seo", label: "SEO 分析" }
   ];
   const activeTab = tabs.some(tab => tab.id === state.analyticsTab) ? state.analyticsTab : "traffic";
   return `<section class="analytics-page">
@@ -1417,7 +1628,7 @@ function renderAnalyticsTrafficStats() {
     visitor: renderTrafficVisitorPage()
   }[activeTab];
   return `
-    <nav class="analytics-subtabs" aria-label="访问统计三级导航">
+    <nav class="analytics-subtabs" aria-label="访问分析三级导航">
       ${tabs.map(tab => `<button class="${activeTab === tab.id ? "active" : ""}" data-traffic-tab="${tab.id}" type="button">${tab.label}</button>`).join("")}
     </nav>
     ${renderAnalyticsTimeFilter(activeTab)}
@@ -1425,7 +1636,7 @@ function renderAnalyticsTrafficStats() {
 }
 
 function renderAnalyticsTimeFilter(activeTab = "overview") {
-  if (activeTab === "overview") return renderAnalyticsTrendFilter();
+  if (activeTab === "overview") return renderAnalyticsOverviewFilter();
   if (activeTab === "trend") return renderAnalyticsTrendFilter();
   if (activeTab === "source") return renderAnalyticsSourceFilter();
   if (activeTab === "pages") return renderAnalyticsPagesFilter();
@@ -1437,6 +1648,24 @@ function renderAnalyticsTimeFilter(activeTab = "overview") {
       <button type="button">近 30 天</button>
       <button type="button">自定义</button>
       <label><input type="date" value="2026-05-21" /> 至 <input type="date" value="2026-05-27" /></label>
+    </div>
+  </section>`;
+}
+
+function renderAnalyticsOverviewFilter() {
+  return `<section class="analytics-filter-panel trend-filter">
+    <div class="analytics-time-group trend-time-row">
+      <span>时间</span>
+      <button type="button">今天</button>
+      <button type="button">昨天</button>
+      <button class="active" type="button">最近7天</button>
+      <button type="button">最近30天</button>
+      <label><input type="date" value="2026-05-21" /> 至 <input type="date" value="2026-05-27" /></label>
+      <span class="analytics-filter-spacer"></span>
+      <button type="button">按时</button>
+      <button class="active" type="button">按日</button>
+      <button type="button">按周</button>
+      <button type="button">按月</button>
     </div>
   </section>`;
 }
@@ -1841,7 +2070,11 @@ function renderPageRankRow(rank, title, path, type, width, metrics, pill, tone =
       <span>${path} · ${type}</span>
       <i><u style="width:${width}"></u></i>
     </div>
-    <dl><dt>${metrics[0]}</dt><dd>${metrics[1]}</dd><dt>${metrics[2]}</dt><dd>${metrics[3]}</dd><dt>${metrics[4]}</dt><dd>${metrics[5]}</dd></dl>
+    <dl>
+      <div><dt>${metrics[0]}</dt><dd>${metrics[1]}</dd></div>
+      <div><dt>${metrics[2]}</dt><dd>${metrics[3]}</dd></div>
+      <div><dt>${metrics[4]}</dt><dd>${metrics[5]}</dd></div>
+    </dl>
     ${pill}
   </div>`;
 }
@@ -2312,83 +2545,391 @@ function renderTrafficVisitorPage() {
     </section>`;
 }
 
-function renderAnalyticsGeoStats() {
+function getGeoPages() {
+  return [
+    {
+      id: "solutions",
+      label: "解决方案",
+      path: "/solutions",
+      score: 66,
+      before: 49,
+      target: 85,
+      botHits: 18,
+      lastCrawl: "昨天 22:08",
+      bot: "PerplexityBot",
+      issue: "场景问题覆盖不足",
+      action: "重写内容",
+      trend: "down",
+      summary: "页面能够被抓取，但内容更像宣传文案，缺少能被 AI 直接组织成答案的场景、问题和证据。",
+      dimensions: [["内容与知识", "17 / 25", 68, "warn"], ["问答覆盖", "11 / 20", 55, "risk"], ["实体一致性", "16 / 20", 80, "good"], ["可抓取性", "15 / 20", 75, "good"], ["结构化证据", "7 / 15", 47, "risk"]],
+      gaps: [["场景词覆盖不足", "缺“产线改造、质检自动化、设备互联”等具体场景问法。", "扣 8 分", "risk"], ["交付信息不足", "缺实施周期、交付流程、售后边界。", "扣 6 分", "warn"], ["可信证据不足", "缺真实案例、效果数据、服务区域。", "扣 5 分", "warn"]],
+      history: [["2026-05-28", "10:12", 66, "17 / 25", "11 / 20", "7 / 15", "新增 3 条场景 FAQ，仍缺案例证据", "系统复评"], ["2026-05-27", "18:30", 62, "16 / 25", "10 / 20", "6 / 15", "补充服务区域与实施流程", "李运营"], ["2026-05-26", "11:08", 58, "14 / 25", "9 / 20", "6 / 15", "页面发布后首次评分", "系统扫描"], ["2026-05-24", "16:42", 51, "12 / 25", "8 / 20", "5 / 15", "内容仍偏宣传口号", "系统扫描"], ["2026-05-22", "09:20", 49, "11 / 25", "7 / 20", "4 / 15", "缺场景、缺 FAQ、缺案例", "系统扫描"]]
+    },
+    {
+      id: "home",
+      label: "首页",
+      path: "/",
+      score: 88,
+      before: 74,
+      target: 92,
+      botHits: 74,
+      lastCrawl: "今天 09:12",
+      bot: "GPTBot",
+      issue: "案例证据还可补充",
+      action: "补案例摘要",
+      trend: "up",
+      summary: "首页实体表达稳定，品牌和业务方向清晰；下一步适合补充案例摘要和资质证据，让 AI 更容易引用。",
+      dimensions: [["内容与知识", "22 / 25", 88, "good"], ["问答覆盖", "16 / 20", 80, "good"], ["实体一致性", "19 / 20", 95, "good"], ["可抓取性", "18 / 20", 90, "good"], ["结构化证据", "13 / 15", 86, "good"]],
+      gaps: [["案例证据不足", "首屏和品牌简介里缺少可直接引用的客户案例摘要。", "扣 3 分", "warn"], ["资质信息分散", "资质、证书与服务能力没有集中成一个可信证据块。", "扣 2 分", "warn"], ["FAQ 入口偏弱", "首页没有明确引导到采购和服务类问答。", "扣 1 分", "warn"]],
+      history: [["2026-05-28", "10:12", 88, "22 / 25", "16 / 20", "13 / 15", "补充品牌实体与服务范围", "系统复评"], ["2026-05-27", "18:30", 84, "21 / 25", "15 / 20", "12 / 15", "新增首屏摘要", "李运营"], ["2026-05-26", "11:08", 81, "20 / 25", "15 / 20", "11 / 15", "调整首页标题", "系统扫描"], ["2026-05-24", "16:42", 78, "19 / 25", "14 / 20", "10 / 15", "补充行业描述", "系统扫描"], ["2026-05-22", "09:20", 74, "18 / 25", "13 / 20", "9 / 15", "首次扫描", "系统扫描"]]
+    },
+    {
+      id: "products",
+      label: "产品服务",
+      path: "/products",
+      score: 74,
+      before: 58,
+      target: 86,
+      botHits: 52,
+      lastCrawl: "今天 09:41",
+      bot: "ClaudeBot",
+      issue: "缺参数表、缺采购 FAQ",
+      action: "补产品资料",
+      trend: "flat",
+      summary: "产品服务页具备基础可抓取性，但产品参数、适配设备、采购问题没有成块展示，影响问答覆盖分。",
+      dimensions: [["内容与知识", "18 / 25", 72, "warn"], ["问答覆盖", "13 / 20", 65, "warn"], ["实体一致性", "17 / 20", 85, "good"], ["可抓取性", "17 / 20", 85, "good"], ["结构化证据", "9 / 15", 60, "warn"]],
+      gaps: [["产品参数不完整", "缺设备型号、适配范围、接口和交付参数。", "扣 7 分", "warn"], ["采购 FAQ 不足", "缺价格、周期、售后和兼容性问题。", "扣 6 分", "warn"], ["结构化字段少", "产品页没有参数表和 FAQ Schema。", "扣 5 分", "warn"]],
+      history: [["2026-05-28", "10:12", 74, "18 / 25", "13 / 20", "9 / 15", "补充产品分类", "系统复评"], ["2026-05-27", "18:30", 70, "17 / 25", "12 / 20", "8 / 15", "更新产品描述", "李运营"], ["2026-05-26", "11:08", 66, "16 / 25", "11 / 20", "7 / 15", "添加服务范围", "系统扫描"], ["2026-05-24", "16:42", 61, "15 / 25", "9 / 20", "6 / 15", "页面发布后扫描", "系统扫描"], ["2026-05-22", "09:20", 58, "14 / 25", "8 / 20", "5 / 15", "缺产品参数", "系统扫描"]]
+    },
+    {
+      id: "cases",
+      label: "客户案例",
+      path: "/cases",
+      score: 69,
+      before: 44,
+      target: 82,
+      botHits: 12,
+      lastCrawl: "昨天 18:34",
+      bot: "GPTBot",
+      issue: "案例行业、结果数据不清晰",
+      action: "上传案例",
+      trend: "up",
+      summary: "案例页是提升可信证据的关键页面，但行业、客户类型、实施结果没有结构化沉淀。",
+      dimensions: [["内容与知识", "16 / 25", 64, "warn"], ["问答覆盖", "10 / 20", 50, "risk"], ["实体一致性", "15 / 20", 75, "good"], ["可抓取性", "18 / 20", 90, "good"], ["结构化证据", "10 / 15", 66, "warn"]],
+      gaps: [["结果数据不足", "缺实施前后指标、效率提升、成本节省等证据。", "扣 8 分", "risk"], ["行业标签不足", "案例没有按行业和应用场景归类。", "扣 5 分", "warn"], ["客户证据弱", "缺授权客户名称、项目周期和交付范围。", "扣 4 分", "warn"]],
+      history: [["2026-05-28", "10:12", 69, "16 / 25", "10 / 20", "10 / 15", "新增 2 条案例摘要", "系统复评"], ["2026-05-27", "18:30", 63, "15 / 25", "9 / 20", "9 / 15", "补充案例列表", "李运营"], ["2026-05-26", "11:08", 55, "13 / 25", "8 / 20", "7 / 15", "页面发布后扫描", "系统扫描"], ["2026-05-24", "16:42", 48, "11 / 25", "7 / 20", "6 / 15", "案例信息不足", "系统扫描"], ["2026-05-22", "09:20", 44, "10 / 25", "6 / 20", "5 / 15", "缺案例证据", "系统扫描"]]
+    },
+    {
+      id: "faq",
+      label: "FAQ",
+      path: "未发布",
+      score: 38,
+      before: 0,
+      target: 78,
+      botHits: 0,
+      lastCrawl: "无记录",
+      bot: "未抓取",
+      issue: "页面未发布，无法承接问答",
+      action: "生成 FAQ",
+      trend: "flat",
+      summary: "FAQ 页面尚未发布，当前无法承接 AI 搜索中的问题型需求，也不会产生有效抓取日志。",
+      dimensions: [["内容与知识", "8 / 25", 32, "risk"], ["问答覆盖", "6 / 20", 30, "risk"], ["实体一致性", "10 / 20", 50, "risk"], ["可抓取性", "8 / 20", 40, "risk"], ["结构化证据", "6 / 15", 40, "risk"]],
+      gaps: [["页面未发布", "FAQ 没有正式 URL，AI Bot 无法抓取。", "扣 12 分", "risk"], ["问答覆盖低", "缺采购、实施、售后、价格和兼容性问题。", "扣 10 分", "risk"], ["无结构化数据", "未生成 FAQ Schema 和页面摘要。", "扣 8 分", "risk"]],
+      history: [["2026-05-28", "10:12", 38, "8 / 25", "6 / 20", "6 / 15", "待生成 FAQ 页面", "系统扫描"], ["2026-05-27", "18:30", 34, "7 / 25", "5 / 20", "5 / 15", "识别到问答缺口", "系统扫描"], ["2026-05-26", "11:08", 28, "6 / 25", "4 / 20", "4 / 15", "未发布", "系统扫描"], ["2026-05-24", "16:42", 18, "4 / 25", "3 / 20", "3 / 15", "无页面", "系统扫描"], ["2026-05-22", "09:20", 0, "0 / 25", "0 / 20", "0 / 15", "未创建", "系统扫描"]]
+    }
+  ];
+}
+
+function getSelectedGeoPage() {
+  return getGeoPages().find(page => page.id === state.geoAnalyticsPage) || getGeoPages()[0];
+}
+
+function geoScoreTone(score) {
+  if (score >= 85) return "ok";
+  if (score >= 70) return "warn";
+  return "risk";
+}
+
+function renderGeoScore(score) {
+  return `<em class="${geoScoreTone(score)}">${score}</em>`;
+}
+
+function renderGeoDateFilter(extra = "") {
+  return `<section class="analytics-filter-panel trend-filter geo-filter">
+    <div class="analytics-time-group trend-time-row">
+      <span>时间</span>
+      <button type="button">今天</button>
+      <button type="button">昨天</button>
+      <button class="active" type="button">最近7天</button>
+      <button type="button">最近30天</button>
+      <label><input type="date" value="2026-05-22" /> 至 <input type="date" value="2026-05-28" /></label>
+      ${extra}
+    </div>
+  </section>`;
+}
+
+function renderGeoOverview() {
+  const pages = getGeoPages();
   return `
     <section class="analytics-note">
       <b>G</b>
-      <span>先把 GEO 统计做成“页面评分”：AI 是否真实引用、提及某个页面不一定稳定可抓，当前优先展示每个页面的 GEO 优化分数和改进项。</span>
+      <span>不要把“AI Bot 抓取”理解成“已经被 AI 推荐”。抓取日志只能证明 AI 搜索相关爬虫访问过页面；核心判断仍然放在页面内容、知识覆盖和结构化程度的评分上。</span>
     </section>
     <section class="analytics-kpi-grid four">
-      <article class="analytics-kpi good"><div class="analytics-kpi-head"><span>GEO 总分</span>${trendPill("+4分", "up")}</div><strong>82</strong><small>全站页面平均分</small></article>
-      <article class="analytics-kpi"><div class="analytics-kpi-head"><span>已评分页面</span>${trendPill("+2页", "up")}</div><strong>32 / 36</strong><small>还有 4 个页面待扫描</small></article>
-      <article class="analytics-kpi warn"><div class="analytics-kpi-head"><span>低分页面</span>${trendPill("需处理", "down")}</div><strong>6</strong><small>低于 70 分，优先处理</small></article>
-      <article class="analytics-kpi"><div class="analytics-kpi-head"><span>AI Bot 抓取</span>${trendPill("+21%", "up")}</div><strong>186</strong><small>作为辅助观察指标</small></article>
+      <article class="analytics-kpi warn"><div class="analytics-kpi-head"><span>全站 GEO 得分</span>${trendPill("+11分", "up")}</div><strong>73</strong><small>低于 85，建议继续优化页面内容</small></article>
+      <article class="analytics-kpi risk"><div class="analytics-kpi-head"><span>低分页面</span>${trendPill("需处理", "down")}</div><strong>5</strong><small>低于 70 分，优先进入优化队列</small></article>
+      <article class="analytics-kpi"><div class="analytics-kpi-head"><span>AI Bot 抓取</span>${trendPill("+21%", "up")}</div><strong>186</strong><small>近 7 天识别到的爬虫访问次数</small></article>
+      <article class="analytics-kpi good"><div class="analytics-kpi-head"><span>最近抓取</span>${trendPill("日志", "flat")}</div><strong>09:41</strong><small>2026-05-28 /products 被访问</small></article>
     </section>
-    <section class="analytics-detail-grid">
+    <section class="analytics-detail-grid geo-overview-grid">
       <article class="panel">
-        <div class="analytics-panel-head"><div><span>评分模型</span><h2>GEO 页面评分规则</h2></div>${miniTrend("up")}</div>
+        <div class="analytics-panel-head"><div><span>评分模型</span><h2>全站 GEO 评分拆解</h2><p>评分规则尚未最终定稿，页面先按可配置权重展示。</p></div><select class="analytics-mini-select"><option>本次扫描</option><option>上次扫描</option><option>近 30 天均值</option></select></div>
         <div class="analytics-geo-score large">
-          <div class="analytics-meter" style="--value: 302deg"><strong>84</strong><span>产品页 GEO 分</span></div>
+          <div class="analytics-meter" style="--value: 263deg"><strong>73</strong><span>全站得分</span></div>
           <div class="analytics-metric-list score-rules">
-            <div><span>可抓取性 25%</span><b>22</b><em style="width:88%"></em></div>
-            <div><span>问答覆盖 25%</span><b>18</b><em style="width:72%"></em></div>
-            <div><span>品牌实体 20%</span><b>17</b><em style="width:85%"></em></div>
-            <div><span>结构化内容 20%</span><b>14</b><em style="width:70%"></em></div>
-            <div><span>可信证据 10%</span><b>7</b><em style="width:66%"></em></div>
+            <div><span>内容与知识完整性 25%</span><b>17</b><em class="warn" style="width:68%"></em></div>
+            <div><span>问答覆盖 20%</span><b>11</b><em class="risk" style="width:55%"></em></div>
+            <div><span>品牌实体一致性 20%</span><b>16</b><em style="width:80%"></em></div>
+            <div><span>页面可抓取性 20%</span><b>17</b><em style="width:85%"></em></div>
+            <div><span>结构化与可信证据 15%</span><b>12</b><em class="warn" style="width:78%"></em></div>
           </div>
         </div>
       </article>
-      <article class="panel analytics-table-panel">
-        <div class="analytics-panel-head"><div><span>页面排行</span><h2>GEO 分数分布</h2></div>${miniTrend("flat")}</div>
-        <table class="analytics-table">
-          <thead><tr><th>页面</th><th>分数</th><th>主要短板</th><th>趋势</th></tr></thead>
+      <article class="panel">
+        <div class="analytics-panel-head"><div><span>优化判断</span><h2>这次应该引导用户做什么</h2></div><button type="button">${icon("i-refresh")}</button></div>
+        <div class="geo-decision-list">
+          <div class="risk"><i>1</i><div><b>先补企业知识库</b><span>FAQ、案例和产品参数不足，是当前扣分主因。</span></div><em>P0</em></div>
+          <div class="warn"><i>2</i><div><b>重写解决方案页</b><span>/solutions 得分 66，缺少场景问题和落地证据。</span></div><em>P1</em></div>
+          <div><i>3</i><div><b>发布 FAQ 页面</b><span>FAQ 未发布，导致问答覆盖分长期偏低。</span></div><em>P1</em></div>
+          <div><i>4</i><div><b>复查 AI Bot 最近访问页</b><span>Bot 主要抓首页和产品页，低分页抓取偏少。</span></div><em>辅助</em></div>
+        </div>
+      </article>
+    </section>
+    <section class="panel analytics-table-panel">
+      <div class="analytics-panel-head"><div><span>页面级诊断</span><h2>每个页面的分数、短板和下一步动作</h2></div><button type="button">${icon("i-upload")} 上传资料</button></div>
+      <div class="analytics-table-scroll">
+        <table class="analytics-table geo-page-table">
+          <thead><tr><th>页面</th><th>GEO 分</th><th>优化前 / 后</th><th>主要短板</th><th>AI Bot 抓取</th><th>最近抓取</th><th>建议动作</th></tr></thead>
           <tbody>
-            <tr><td><b>首页</b><span>/</span></td><td><em class="ok">92</em></td><td>可继续补案例摘要</td><td>${miniTrend("up")}</td></tr>
-            <tr><td><b>产品服务</b><span>/products</span></td><td><em class="warn">74</em></td><td>缺参数和 FAQ</td><td>${miniTrend("flat")}</td></tr>
-            <tr><td><b>解决方案</b><span>/solutions</span></td><td><em class="warn">66</em></td><td>场景问题覆盖不足</td><td>${miniTrend("down")}</td></tr>
-            <tr><td><b>FAQ</b><span>未发布</span></td><td><em class="risk">38</em></td><td>需要创建页面</td><td>${miniTrend("flat")}</td></tr>
+            ${pages.map(page => `<tr><td><button class="analytics-link-text" data-geo-page="${page.id}" data-geo-analytics-tab="pages" type="button">${page.label}</button><span>${page.path}</span></td><td>${renderGeoScore(page.score)}</td><td><span class="geo-mini-bars"><i style="width:${Math.max(page.before, 8)}%"></i><i style="width:${page.score}%"></i></span></td><td>${page.issue}</td><td>${page.botHits} 次</td><td><b>${page.lastCrawl}</b><span>${page.bot}</span></td><td><button class="analytics-row-button" data-geo-page="${page.id}" data-geo-analytics-tab="pages" type="button">${page.action}</button></td></tr>`).join("")}
           </tbody>
         </table>
+      </div>
+    </section>
+    ${renderGeoCrawlerSummary()}`;
+}
+
+function renderGeoCrawlerSummary() {
+  return `<section class="analytics-detail-grid geo-crawler-summary">
+    <article class="panel">
+      <div class="analytics-panel-head"><div><span>AI Bot 访问</span><h2>近 7 天抓取趋势</h2><p>来自服务器访问日志和 User-Agent 识别。</p></div></div>
+      <div class="geo-bot-chart" aria-label="AI Bot 近 7 天抓取趋势">
+        ${[38, 42, 58, 46, 70, 64, 82].map((height, index) => `<div><i style="height:${height}%"></i><span>05/${22 + index}</span></div>`).join("")}
+      </div>
+    </article>
+    <article class="panel">
+      <div class="analytics-panel-head"><div><span>爬虫明细</span><h2>谁抓了哪些页面</h2></div><span class="analytics-tag bot">辅助信号</span></div>
+      <div class="geo-bot-list">
+        <div><b>GPTBot</b><span>首页、产品服务、客户案例</span><strong>68</strong><small>今天 09:12</small></div>
+        <div><b>ClaudeBot</b><span>产品服务、关于我们</span><strong>42</strong><small>今天 09:41</small></div>
+        <div><b>PerplexityBot</b><span>首页、解决方案</span><strong>31</strong><small>昨天 22:08</small></div>
+        <div><b>其他 AI Bot</b><span>新闻资讯、产品服务</span><strong>45</strong><small>近 7 天</small></div>
+      </div>
+    </article>
+  </section>`;
+}
+
+function renderGeoPageAnalysis() {
+  const pages = getGeoPages();
+  const page = getSelectedGeoPage();
+  return `
+    <nav class="geo-page-tabs" aria-label="页面切换">
+      ${pages.map(item => `<button class="${item.id === page.id ? "active" : ""}" data-geo-page="${item.id}" type="button">${item.label}</button>`).join("")}
+    </nav>
+    ${renderGeoDateFilter(`<span class="analytics-filter-spacer"></span><span>粒度</span><button class="active" type="button">按日</button><button type="button">按周</button>`)}
+    <section class="analytics-filter-panel geo-filter">
+      <div class="analytics-time-group">
+        <span>页面</span>
+        <select class="analytics-mini-select"><option>${page.label} ${page.path}</option></select>
+        <span>状态</span>
+        <button class="active" type="button">全部</button>
+        <button type="button">低分</button>
+        <button type="button">已优化</button>
+      </div>
+    </section>
+    <section class="analytics-detail-grid geo-page-analysis-grid">
+      <article class="panel">
+        <div class="analytics-panel-head"><div><span>页面总体评价</span><h2>${page.label}页 ${page.path}</h2></div><span class="analytics-tag ${geoScoreTone(page.score) === "ok" ? "good" : geoScoreTone(page.score)}">${page.score < 70 ? "低于 70" : page.score < 85 ? "待提升" : "健康"}</span></div>
+        <div class="geo-page-eval">
+          <div class="analytics-meter" style="--value:${Math.round(page.score * 3.6)}deg"><strong>${page.score}</strong><span>GEO 分</span></div>
+          <div><p>${page.summary}</p><div class="geo-action-strip"><button class="primary slim" type="button">${icon("i-spark")} 优化本页</button><button class="ghost slim" type="button">${icon("i-upload")} 补充资料</button><button class="ghost slim" type="button">${icon("i-refresh")} 重新评分</button></div></div>
+        </div>
+        <div class="geo-mini-kpis">
+          <div><span>优化前</span><b>${page.before}</b><small>2026-05-22</small></div>
+          <div><span>当前分</span><b>${page.score}</b><small>提升 ${Math.max(page.score - page.before, 0)} 分</small></div>
+          <div><span>目标分</span><b>${page.target}</b><small>仍差 ${Math.max(page.target - page.score, 0)} 分</small></div>
+        </div>
       </article>
+      <article class="panel">
+        <div class="analytics-panel-head"><div><span>评分波动</span><h2>每日 GEO 得分趋势</h2></div><span class="analytics-tag">按日</span></div>
+        ${renderGeoScoreTrend(page)}
+      </article>
+    </section>
+    <section class="geo-dimension-grid">
+      ${page.dimensions.map(([label, score, width, tone]) => `<div><span>${label}</span><b>${score}</b><em><i class="${tone}" style="width:${width}%"></i></em></div>`).join("")}
+    </section>
+    <section class="analytics-detail-grid geo-page-action-grid">
+      <article class="panel">
+        <div class="analytics-panel-head"><div><span>选中页面</span><h2>${page.label}页诊断</h2></div><span class="analytics-tag warn">本页问题</span></div>
+        <div class="geo-gap-list">
+          ${page.gaps.map(([title, desc, score, tone]) => `<div><div><b>${title}</b><span>${desc}</span></div><em class="${tone}">${score}</em></div>`).join("")}
+        </div>
+      </article>
+      <article class="panel">
+        <div class="analytics-panel-head"><div><span>动作闭环</span><h2>低分后的优化路径</h2></div><button class="primary slim" type="button">创建优化任务</button></div>
+        <div class="geo-task-list">
+          <div><i>${icon("i-upload")}</i><div><b>上传案例与方案资料</b><span>补充客户行业、实施前后指标、交付周期，进入企业知识库。</span></div><em class="risk">最优先</em></div>
+          <div><i>${icon("i-spark")}</i><div><b>生成场景化 FAQ</b><span>围绕采购、实施、售后、设备兼容性生成 12 个问答块。</span></div><em class="warn">内容</em></div>
+          <div><i>${icon("i-book")}</i><div><b>补结构化摘要</b><span>给页面添加可抓取摘要、FAQ Schema 和服务区域字段。</span></div><em>结构</em></div>
+          <div><i>${icon("i-refresh")}</i><div><b>发布后重新评分</b><span>对比优化前后得分，并记录分数变化。</span></div><em class="good">复评</em></div>
+        </div>
+      </article>
+    </section>
+    <section class="panel analytics-table-panel">
+      <div class="analytics-panel-head"><div><span>评分明细</span><h2>按日期倒序查看每次评分结果</h2></div><button type="button">导出 CSV</button></div>
+      <div class="analytics-table-scroll">
+        <table class="analytics-table">
+          <thead><tr><th>日期</th><th>总分</th><th>内容知识</th><th>问答覆盖</th><th>结构化证据</th><th>主要变化</th><th>操作人</th></tr></thead>
+          <tbody>
+            ${page.history.map(([date, time, score, content, qa, schema, change, owner]) => `<tr><td><b>${date}</b><span>${time}</span></td><td>${renderGeoScore(score)}</td><td>${content}</td><td>${qa}</td><td>${schema}</td><td>${change}</td><td>${owner}</td></tr>`).join("")}
+          </tbody>
+        </table>
+      </div>
     </section>`;
+}
+
+function renderGeoScoreTrend(page) {
+  const values = page.history.slice().reverse().map(item => item[2]);
+  const points = values.map((value, index) => {
+    const x = 44 + index * (560 / (values.length - 1));
+    const y = 188 - value * 1.7;
+    return { x, y };
+  });
+  const path = points.map((point, index) => `${index ? "L" : "M"}${point.x.toFixed(1)} ${point.y.toFixed(1)}`).join(" ");
+  const area = `${path} L ${points[points.length - 1].x.toFixed(1)} 204 L ${points[0].x.toFixed(1)} 204 Z`;
+  return `<div class="geo-score-chart">
+    <svg viewBox="0 0 660 230" role="img" aria-label="${page.label}页每日 GEO 得分趋势">
+      <path class="grid" d="M36 38H628M36 84H628M36 130H628M36 176H628"></path>
+      <path class="area" d="${area}"></path>
+      <path class="line" d="${path}"></path>
+      ${points.map(point => `<circle cx="${point.x.toFixed(1)}" cy="${point.y.toFixed(1)}" r="5"></circle>`).join("")}
+      ${["05/22", "05/24", "05/26", "05/27", "05/28"].map((label, index) => `<text x="${44 + index * 140}" y="222">${label}</text>`).join("")}
+    </svg>
+  </div>`;
+}
+
+function renderGeoCrawlerAnalysis() {
+  return `
+    ${renderGeoDateFilter("")}
+    <section class="analytics-filter-panel geo-filter">
+      <div class="analytics-time-group">
+        <span>爬虫</span>
+        <button class="active" type="button">全部 AI Bot</button>
+        <button type="button">GPTBot</button>
+        <button type="button">ClaudeBot</button>
+        <button type="button">PerplexityBot</button>
+        <span>页面</span>
+        <select class="analytics-mini-select"><option>全部页面</option><option>/products</option><option>/solutions</option><option>/</option></select>
+        <span>状态</span>
+        <button class="active" type="button">全部</button><button type="button">200</button><button type="button">异常</button>
+      </div>
+    </section>
+    <section class="analytics-kpi-grid four">
+      <article class="analytics-kpi"><div class="analytics-kpi-head"><span>抓取次数</span>${trendPill("+21%", "up")}</div><strong>186</strong><small>近 7 天 AI Bot 访问</small></article>
+      <article class="analytics-kpi good"><div class="analytics-kpi-head"><span>成功抓取</span>${trendPill("稳定", "up")}</div><strong>179</strong><small>状态码 200 的访问</small></article>
+      <article class="analytics-kpi warn"><div class="analytics-kpi-head"><span>低分页抓取</span>${trendPill("关注", "flat")}</div><strong>30</strong><small>/solutions 与 /cases</small></article>
+      <article class="analytics-kpi risk"><div class="analytics-kpi-head"><span>未抓取页面</span>${trendPill("需处理", "down")}</div><strong>FAQ</strong><small>页面未发布，无日志</small></article>
+    </section>
+    ${renderGeoCrawlerSummary()}
+    <section class="analytics-detail-grid geo-crawler-tables">
+      <article class="panel analytics-table-panel"><div class="analytics-panel-head"><div><span>页面分布</span><h2>哪些页面被抓得最多</h2></div></div><div class="analytics-table-scroll"><table class="analytics-table"><thead><tr><th>页面</th><th>抓取次数</th><th>最近抓取</th><th>GEO 分</th></tr></thead><tbody><tr><td><b>首页</b><span>/</span></td><td>74</td><td>05-28 09:12</td><td>${renderGeoScore(88)}</td></tr><tr><td><b>产品服务</b><span>/products</span></td><td>52</td><td>05-28 09:41</td><td>${renderGeoScore(74)}</td></tr><tr><td><b>解决方案</b><span>/solutions</span></td><td>18</td><td>05-27 22:08</td><td>${renderGeoScore(66)}</td></tr><tr><td><b>客户案例</b><span>/cases</span></td><td>12</td><td>05-27 18:34</td><td>${renderGeoScore(69)}</td></tr></tbody></table></div></article>
+      <article class="panel analytics-table-panel"><div class="analytics-panel-head"><div><span>状态分布</span><h2>抓取是否正常</h2></div></div><div class="analytics-table-scroll"><table class="analytics-table"><thead><tr><th>状态</th><th>次数</th><th>占比</th><th>说明</th></tr></thead><tbody><tr><td><span class="analytics-tag good">200</span></td><td>179</td><td>96.2%</td><td>正常抓取</td></tr><tr><td><span class="analytics-tag warn">304</span></td><td>5</td><td>2.7%</td><td>缓存命中</td></tr><tr><td><span class="analytics-tag risk">404</span></td><td>2</td><td>1.1%</td><td>历史链接失效</td></tr></tbody></table></div></article>
+    </section>
+    <section class="panel analytics-table-panel">
+      <div class="analytics-panel-head"><div><span>日志证据</span><h2>AI Bot 访问记录，按时间倒序</h2></div><button type="button">导出日志</button></div>
+      <div class="analytics-table-scroll">
+        <table class="analytics-table">
+          <thead><tr><th>访问时间</th><th>Bot</th><th>页面</th><th>状态码</th><th>设备</th><th>来源 IP</th><th>说明</th></tr></thead>
+          <tbody>
+            <tr><td><b>2026-05-28 09:41</b></td><td>ClaudeBot</td><td><b>/products</b><span>产品服务</span></td><td><span class="analytics-tag good">200</span></td><td>Desktop</td><td>54.***.21</td><td>产品页被抓取</td></tr>
+            <tr><td><b>2026-05-28 09:12</b></td><td>GPTBot</td><td><b>/</b><span>首页</span></td><td><span class="analytics-tag good">200</span></td><td>Desktop</td><td>20.***.14</td><td>首页被抓取</td></tr>
+            <tr><td><b>2026-05-27 22:08</b></td><td>PerplexityBot</td><td><b>/solutions</b><span>解决方案</span></td><td><span class="analytics-tag good">200</span></td><td>Desktop</td><td>34.***.87</td><td>低分页被抓取</td></tr>
+            <tr><td><b>2026-05-27 18:34</b></td><td>GPTBot</td><td><b>/cases</b><span>客户案例</span></td><td><span class="analytics-tag good">200</span></td><td>Desktop</td><td>20.***.16</td><td>案例页被抓取</td></tr>
+            <tr><td><b>2026-05-27 10:02</b></td><td>Other AI Bot</td><td><b>/news/industry</b><span>新闻资讯</span></td><td><span class="analytics-tag warn">304</span></td><td>Desktop</td><td>18.***.45</td><td>缓存命中</td></tr>
+            <tr><td><b>2026-05-26 21:49</b></td><td>GPTBot</td><td><b>/old-faq</b><span>历史 FAQ 链接</span></td><td><span class="analytics-tag risk">404</span></td><td>Desktop</td><td>20.***.18</td><td>建议补重定向</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>`;
+}
+
+function renderAnalyticsGeoStats() {
+  const tabs = [
+    { id: "overview", label: "概览" },
+    { id: "pages", label: "页面分析" },
+    { id: "crawler", label: "抓取分析" }
+  ];
+  const activeTab = tabs.some(tab => tab.id === state.geoAnalyticsTab) ? state.geoAnalyticsTab : "overview";
+  const content = {
+    overview: renderGeoOverview(),
+    pages: renderGeoPageAnalysis(),
+    crawler: renderGeoCrawlerAnalysis()
+  }[activeTab];
+  return `
+    <nav class="analytics-subtabs" aria-label="GEO 分析三级导航">
+      ${tabs.map(tab => `<button class="${activeTab === tab.id ? "active" : ""}" data-geo-analytics-tab="${tab.id}" type="button">${tab.label}</button>`).join("")}
+    </nav>
+    ${content}`;
 }
 
 function renderAnalyticsSeoStats() {
   return `
-    <section class="analytics-kpi-grid four">
-      <article class="analytics-kpi good"><div class="analytics-kpi-head"><span>搜索展现</span>${trendPill("+16%", "up")}</div><strong>18,620</strong><small>来自搜索结果页曝光</small></article>
-      <article class="analytics-kpi good"><div class="analytics-kpi-head"><span>搜索点击</span>${trendPill("+9%", "up")}</div><strong>932</strong><small>自然搜索点击量</small></article>
-      <article class="analytics-kpi warn"><div class="analytics-kpi-head"><span>CTR</span>${trendPill("偏低", "down")}</div><strong>5.0%</strong><small>点击率，标题可优化</small></article>
-      <article class="analytics-kpi"><div class="analytics-kpi-head"><span>平均排名</span>${trendPill("+3位", "up")}</div><strong>12.4</strong><small>产品词仍在第二页附近</small></article>
-    </section>
-    <section class="analytics-detail-grid">
-      <article class="panel">
-        <div class="analytics-panel-head"><div><span>搜索表现</span><h2>关键词基础统计</h2></div>${miniTrend("up")}</div>
-        <div class="analytics-keyword-list">
-          <div><b>工业视觉检测系统</b><span>产品词</span><strong>3,420</strong><em>展现</em><strong>Top 12</strong></div>
-          <div><b>自动化产线改造</b><span>方案词</span><strong>2,186</strong><em>展现</em><strong>Top 18</strong></div>
-          <div><b>设备数据采集网关</b><span>产品词</span><strong>1,642</strong><em>展现</em><strong>Top 9</strong></div>
-          <div><b>智能制造解决方案</b><span>行业词</span><strong>1,208</strong><em>展现</em><strong>Top 24</strong></div>
+    <section class="analytics-seo-lite">
+      <section class="seo-result-card" aria-label="SEO 核心结果">
+        <div class="seo-score-box">
+          <span>SEO 健康分</span>
+          <strong>76</strong>
+          <b>基础正常，内容仍需补强</b>
+          <small>重点处理标题重复、FAQ 未发布和 3 个重点页收录。</small>
         </div>
-      </article>
-      <article class="panel">
-        <div class="analytics-panel-head"><div><span>收录情况</span><h2>页面收录统计</h2></div>${miniTrend("flat")}</div>
-        <div class="analytics-source-list">
-          <div><b>已收录页面</b><span>搜索引擎可展示的页面</span><i style="width: 67%"></i><strong>24 / 36</strong></div>
-          <div><b>Sitemap 提交</b><span>sitemap.xml 正常生成</span><i style="width: 100%"></i><strong>正常</strong></div>
-          <div><b>robots.txt</b><span>未阻止核心页面抓取</span><i style="width: 100%"></i><strong>正常</strong></div>
-          <div><b>未收录重点页</b><span>产品服务、案例、FAQ 需关注</span><i style="width: 36%"></i><strong>3</strong></div>
+        <div class="seo-metric-grid">
+          <div class="seo-metric"><span>搜索点击</span><strong>1,842</strong><b>近 7 天 +18%</b></div>
+          <div class="seo-metric"><span>搜索展现</span><strong>68,420</strong><b>近 7 天 +24%</b></div>
+          <div class="seo-metric warn"><span>平均 CTR</span><strong>2.7%</strong><b>低于目标</b></div>
+          <div class="seo-metric warn"><span>已收录页面</span><strong>31 / 42</strong><b>3 页重点关注</b></div>
         </div>
-      </article>
+      </section>
+      <section class="seo-lite-grid">
+        <article class="panel seo-lite-panel">
+          <div class="analytics-panel-head"><div><span>优先优化</span><h2>先处理这 3 件事</h2></div></div>
+          <div class="seo-issue-list">
+            <div class="seo-issue-row"><span class="seo-level high">严重</span><div><b>8 个页面 Title 重复</b><small>产品页和方案页标题相似，影响搜索结果识别。</small></div><button type="button">AI 生成标题</button></div>
+            <div class="seo-issue-row"><span class="seo-level mid">警告</span><div><b>FAQ 页面未发布</b><small>12 个问题词没有承接页面，影响长尾搜索覆盖。</small></div><button type="button">生成 FAQ</button></div>
+            <div class="seo-issue-row"><span class="seo-level low">提示</span><div><b>3 个重点页待收录</b><small>产品服务、案例、FAQ 需要提交 sitemap 并补内链。</small></div><button type="button">处理收录</button></div>
+          </div>
+        </article>
+        <article class="panel seo-lite-panel">
+          <div class="analytics-panel-head"><div><span>机会词与页面</span><h2>当前最值得看的结果</h2></div></div>
+          <div class="seo-opportunity-list">
+            <div><b>工业视觉检测系统</b><span>产品词 · /products/vision</span><strong>Top 9</strong></div>
+            <div><b>自动化产线改造方案</b><span>高展现低点击，建议优化标题摘要</span><strong>Top 18</strong></div>
+            <div><b>视觉检测设备怎么选</b><span>问题词，建议放进 FAQ 页面</span><strong>Top 22</strong></div>
+            <div><b>/solutions</b><span>页面 SEO 68 分，缺案例和参数证据</span><strong>待优化</strong></div>
+          </div>
+        </article>
+      </section>
     </section>
-    <section class="panel analytics-action-panel">
-      <div class="analytics-panel-head"><div><span>SEO 问题</span><h2>基础页面健康检查</h2></div>${miniTrend("down")}</div>
-      <div class="analytics-action-list">
-        <div class="analytics-action-row"><span class="analytics-tag seo">SEO</span><b>8 个页面 Title 重复</b><small>影响搜索结果识别，建议按页面主题生成唯一标题。</small><button type="button">处理</button></div>
-        <div class="analytics-action-row"><span class="analytics-tag seo">SEO</span><b>11 张图片缺少 alt</b><small>影响图片理解和页面语义，建议自动补充产品或场景描述。</small><button type="button">处理</button></div>
-        <div class="analytics-action-row"><span class="analytics-tag seo">SEO</span><b>FAQ 页面未发布</b><small>影响长尾问题词覆盖，也会影响 GEO 问答覆盖。</small><button type="button">处理</button></div>
-      </div>
-    </section>`;
+    `;
 }
 
 function renderSettingsPage() {
@@ -2461,7 +3002,9 @@ function bindAnalyticsTrendInteractions() {
 
 function bindEvents() {
   $$("[data-section]").forEach(btn => btn.addEventListener("click", () => {
-    state.section = btn.dataset.section;
+    const nextSection = normalizeSection(btn.dataset.section);
+    if (nextSection !== state.section && availableSections.has(nextSection)) navMotionFromSection = state.section;
+    state.section = nextSection;
     state.kbManagePage = null;
     state.navMenuOpen = false;
     localStorage.setItem("clone_section", state.section);
@@ -2541,6 +3084,16 @@ function bindEvents() {
     state.trafficAnalyticsTab = btn.dataset.trafficTab;
     render();
   }));
+  $$("[data-geo-analytics-tab]").forEach(btn => btn.addEventListener("click", () => {
+    state.geoAnalyticsTab = btn.dataset.geoAnalyticsTab;
+    if (btn.dataset.geoPage) state.geoAnalyticsPage = btn.dataset.geoPage;
+    render();
+  }));
+  $$("[data-geo-page]").forEach(btn => btn.addEventListener("click", () => {
+    state.geoAnalyticsPage = btn.dataset.geoPage;
+    if (btn.dataset.geoAnalyticsTab) state.geoAnalyticsTab = btn.dataset.geoAnalyticsTab;
+    render();
+  }));
   $$("[data-page-report-tab]").forEach(btn => btn.addEventListener("click", () => {
     state.analyticsPageReportTab = btn.dataset.pageReportTab;
     render();
@@ -2606,7 +3159,7 @@ function doLogin() {
   localStorage.setItem("clone_auth", "1");
   localStorage.setItem("clone_phone", state.phone);
   state.loggedIn = true;
-  state.section = "geo";
+  state.section = "home";
   localStorage.setItem("clone_section", state.section);
   render();
 }
