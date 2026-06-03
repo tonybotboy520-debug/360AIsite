@@ -34,7 +34,7 @@ const state = {
   loggedIn: params.get("demo") === "1" || localStorage.getItem("clone_auth") === "1",
   phone: localStorage.getItem("clone_phone") || "13300000748",
   section: initialSection,
-  kbTab: "company",
+  kbTab: pickParam("kbTab", ["company", "products", "faq", "cases", "honors"], "company"),
   kbManagePage: params.get("kbManage") || null,
   urlHelper: false,
   navMenuOpen: false,
@@ -299,6 +299,7 @@ const publishSteps = [
 const kbTabs = [
   { id: "company", title: "企业信息", status: "已填写" },
   { id: "products", title: "产品信息", status: "待完善", warn: true },
+  { id: "faq", title: "FAQ 问答", status: "待完善", warn: true },
   { id: "cases", title: "行业案例", status: "已填写" },
   { id: "honors", title: "荣誉资质", status: "已填写" }
 ];
@@ -637,7 +638,7 @@ function renderAuthed() {
       <span class="phone-mask">${icon("i-phone-call")}${maskPhone(state.phone)}</span>
       <button class="logout-icon" id="logout" type="button" aria-label="退出登录">${icon("i-log-out")}</button>
     </header>
-    <main class="app-main">${renderSection()}</main>
+    <main class="app-main app-main-${state.section}">${renderSection()}</main>
   `;
 }
 
@@ -951,6 +952,7 @@ function renderUploadStrip(title) {
 
 function renderKbContent() {
   if (state.kbTab === "products") return renderProductsKb();
+  if (state.kbTab === "faq") return renderFaqKb();
   if (state.kbTab === "cases") return renderCasesKb();
   if (state.kbTab === "honors") return renderHonorsKb();
   return renderCompanyKb();
@@ -1026,6 +1028,24 @@ function renderProductsKb() {
   `;
 }
 
+function renderFaqKb() {
+  return `
+    ${sectionTitle("FAQ 问答", "沉淀采购、选型、实施、售后和兼容性问题，用于 GEO 问答覆盖和官网 FAQ 页面。")}
+    ${fieldBlock("基础字段", "优先补齐用户最常问的问题，便于 AI 搜索直接组织答案。", "base", [
+      inputGroup("采购与报价 FAQ", "如何确认制冷量和报价？是否支持非标定制？交付周期多久？", "每行一个采购问题", true),
+      inputGroup("选型与参数 FAQ", "如何根据温度范围、介质、现场环境选择冷水机型号？", "补充型号、参数、适配场景问题", true),
+      inputGroup("实施交付 FAQ", "设备到场后如何安装调试？是否提供现场服务？", "补充实施周期、交付边界、安装条件", true),
+      inputGroup("售后服务 FAQ", "质保多久？出现故障如何响应？是否提供备件？", "补充售后范围和响应机制", true)
+    ])}
+    ${fieldBlock("专属字段", "从 GEO 低分页面反推需要补充的问答块。", "custom", [
+      inputGroup("解决方案页问答", "产线改造如何接入制冷系统？不同工况如何配置冷源？", "", true, "GEO 建议"),
+      inputGroup("产品服务页问答", "不同型号的制冷量、控温范围、接口和适配设备分别是什么？", "", true, "GEO 建议"),
+      inputGroup("FAQ 页面摘要", "围绕采购、选型、安装、售后形成可发布 FAQ 页面。", "", true, "AI 生成")
+    ])}
+    ${formFooter()}
+  `;
+}
+
 function renderCasesKb() {
   const cases = ["应用于吹塑、注塑行业", "应用于电镀、阳极氧化行业", "应用于新能源锂电池行业", "应用于化工反应釜行业", "应用于汽车新能源行业", "应用于新能源喷涂行业", "应用于：化工、医药", "应用于环保、化工行业"];
   return `
@@ -1089,25 +1109,30 @@ function renderSitePage() {
     <section class="site-workbench">
       <div class="site-list-head">
         <div>
-          <span>官网资产</span>
           <h1>我的官网 <small>(${ownedSites.length})</small></h1>
-          <p>通过卡片创建新官网，也可以进入已有官网继续修改页面、内容和发布配置。</p>
         </div>
-        <button class="ghost slim" data-section="knowledge" type="button">企业知识库 (19)</button>
       </div>
       <div class="site-grid">
-        ${ownedSites.map(site => `
-          <button class="site-item owned-site-card" data-open-editor type="button">
-            <div class="site-card-top"><span class="${site.status === "已发布" ? "published" : "draft"}">${site.status}</span><small>${site.type}</small></div>
-            <h3>${site.name}</h3>
-            <p>${site.desc}</p>
+        ${ownedSites.map(site => {
+          const published = site.status === "已发布";
+          return `
+          <button class="site-item owned-site-card ${published ? "published-card" : "draft-card"}" data-open-editor type="button">
+            <span class="site-card-deco" aria-hidden="true"></span>
+            <div class="site-card-top"><span class="${published ? "published" : "draft"}">${site.status}</span></div>
+            <div class="site-card-body">
+              <i class="site-card-icon" aria-hidden="true">${icon(published ? "i-site-window" : "i-doc-list")}</i>
+              <div>
+                <h3>${site.name}</h3>
+                <p>${site.desc}</p>
+              </div>
+            </div>
             <div class="site-card-meta">
-              <div><b>${site.pages}</b><small>页面</small></div>
+              <div><small>页面数量</small><b>${site.pages}</b></div>
               <time><small>创建时间</small><em>${site.created}</em></time>
               <time><small>修改时间</small><em>${site.updated}</em></time>
             </div>
           </button>
-        `).join("")}
+        `}).join("")}
         <button class="site-item site-create-card" data-create-site type="button">
           <b>${icon("i-plus")}</b>
           <h3>添加官网</h3>
@@ -2152,10 +2177,6 @@ function renderTrafficSourcePage() {
         </div>
         <div class="analytics-panel-actions"><button type="button">下载</button><button type="button">收起筛选</button></div>
       </div>
-      <div class="analytics-source-warning">
-        <b>提示</b>
-        <span>因浏览器隐私策略升级，第三方统计工具可能无法获取完整上游地址。若需要排除“已屏蔽”数据，可在上方“智能屏蔽数据”中选择“不包含”。</span>
-      </div>
       <div class="analytics-source-tabs">
         <button class="active" type="button">来源类型</button>
         <button type="button">来源网站</button>
@@ -2223,10 +2244,6 @@ function renderTrafficPagesPage() {
           <p>${activePageReport.desc}</p>
         </div>
         <div class="analytics-panel-actions"><button type="button">下载</button><button type="button">收起筛选</button></div>
-      </div>
-      <div class="analytics-source-warning">
-        <b>提示</b>
-        <span>智能屏蔽数据会影响当前汇总。选择“不包含”后，疑似异常访问、机器流量和黑灰产访问会从本报告中排除。</span>
       </div>
       <div class="analytics-source-tabs analytics-page-analysis-tabs">
         ${analyticsPageReportTabs.map(tab => `<button class="${activePageReport.id === tab.id ? "active" : ""}" data-page-report-tab="${tab.id}" type="button">${tab.label}</button>`).join("")}
@@ -2559,6 +2576,8 @@ function getGeoPages() {
       bot: "PerplexityBot",
       issue: "场景问题覆盖不足",
       action: "重写内容",
+      kbTab: "products",
+      knowledgeAction: "补充场景知识",
       trend: "down",
       summary: "页面能够被抓取，但内容更像宣传文案，缺少能被 AI 直接组织成答案的场景、问题和证据。",
       dimensions: [["内容与知识", "17 / 25", 68, "warn"], ["问答覆盖", "11 / 20", 55, "risk"], ["实体一致性", "16 / 20", 80, "good"], ["可抓取性", "15 / 20", 75, "good"], ["结构化证据", "7 / 15", 47, "risk"]],
@@ -2577,6 +2596,8 @@ function getGeoPages() {
       bot: "GPTBot",
       issue: "案例证据还可补充",
       action: "补案例摘要",
+      kbTab: "cases",
+      knowledgeAction: "补充案例知识",
       trend: "up",
       summary: "首页实体表达稳定，品牌和业务方向清晰；下一步适合补充案例摘要和资质证据，让 AI 更容易引用。",
       dimensions: [["内容与知识", "22 / 25", 88, "good"], ["问答覆盖", "16 / 20", 80, "good"], ["实体一致性", "19 / 20", 95, "good"], ["可抓取性", "18 / 20", 90, "good"], ["结构化证据", "13 / 15", 86, "good"]],
@@ -2595,6 +2616,8 @@ function getGeoPages() {
       bot: "ClaudeBot",
       issue: "缺参数表、缺采购 FAQ",
       action: "补产品资料",
+      kbTab: "products",
+      knowledgeAction: "完善产品知识",
       trend: "flat",
       summary: "产品服务页具备基础可抓取性，但产品参数、适配设备、采购问题没有成块展示，影响问答覆盖分。",
       dimensions: [["内容与知识", "18 / 25", 72, "warn"], ["问答覆盖", "13 / 20", 65, "warn"], ["实体一致性", "17 / 20", 85, "good"], ["可抓取性", "17 / 20", 85, "good"], ["结构化证据", "9 / 15", 60, "warn"]],
@@ -2613,6 +2636,8 @@ function getGeoPages() {
       bot: "GPTBot",
       issue: "案例行业、结果数据不清晰",
       action: "上传案例",
+      kbTab: "cases",
+      knowledgeAction: "完善案例知识",
       trend: "up",
       summary: "案例页是提升可信证据的关键页面，但行业、客户类型、实施结果没有结构化沉淀。",
       dimensions: [["内容与知识", "16 / 25", 64, "warn"], ["问答覆盖", "10 / 20", 50, "risk"], ["实体一致性", "15 / 20", 75, "good"], ["可抓取性", "18 / 20", 90, "good"], ["结构化证据", "10 / 15", 66, "warn"]],
@@ -2631,6 +2656,8 @@ function getGeoPages() {
       bot: "未抓取",
       issue: "页面未发布，无法承接问答",
       action: "生成 FAQ",
+      kbTab: "faq",
+      knowledgeAction: "补充 FAQ 问答",
       trend: "flat",
       summary: "FAQ 页面尚未发布，当前无法承接 AI 搜索中的问题型需求，也不会产生有效抓取日志。",
       dimensions: [["内容与知识", "8 / 25", 32, "risk"], ["问答覆盖", "6 / 20", 30, "risk"], ["实体一致性", "10 / 20", 50, "risk"], ["可抓取性", "8 / 20", 40, "risk"], ["结构化证据", "6 / 15", 40, "risk"]],
@@ -2670,11 +2697,19 @@ function renderGeoDateFilter(extra = "") {
 
 function renderGeoOverview() {
   const pages = getGeoPages();
+  const scoreRules = [
+    ["内容与知识完整性", "18 / 25", "25%", 72, "warn"],
+    ["问答覆盖", "11 / 20", "20%", 55, "risk"],
+    ["品牌实体一致性", "16 / 20", "20%", 80, "good"],
+    ["页面可抓取性", "17 / 20", "20%", 85, "good"],
+    ["结构化与可信证据", "12 / 15", "15%", 78, "warn"],
+    ["FAQ 可复用度", "8 / 12", "12%", 66, "warn"],
+    ["案例与效果证据", "7 / 12", "12%", 58, "risk"],
+    ["产品参数完整度", "9 / 12", "12%", 75, "warn"],
+    ["内容新鲜度", "8 / 10", "10%", 80, "good"],
+    ["AI 摘要友好度", "7 / 10", "10%", 70, "warn"]
+  ];
   return `
-    <section class="analytics-note">
-      <b>G</b>
-      <span>不要把“AI Bot 抓取”理解成“已经被 AI 推荐”。抓取日志只能证明 AI 搜索相关爬虫访问过页面；核心判断仍然放在页面内容、知识覆盖和结构化程度的评分上。</span>
-    </section>
     <section class="analytics-kpi-grid four">
       <article class="analytics-kpi warn"><div class="analytics-kpi-head"><span>全站 GEO 得分</span>${trendPill("+11分", "up")}</div><strong>73</strong><small>低于 85，建议继续优化页面内容</small></article>
       <article class="analytics-kpi risk"><div class="analytics-kpi-head"><span>低分页面</span>${trendPill("需处理", "down")}</div><strong>5</strong><small>低于 70 分，优先进入优化队列</small></article>
@@ -2682,36 +2717,30 @@ function renderGeoOverview() {
       <article class="analytics-kpi good"><div class="analytics-kpi-head"><span>最近抓取</span>${trendPill("日志", "flat")}</div><strong>09:41</strong><small>2026-05-28 /products 被访问</small></article>
     </section>
     <section class="analytics-detail-grid geo-overview-grid">
-      <article class="panel">
-        <div class="analytics-panel-head"><div><span>评分模型</span><h2>全站 GEO 评分拆解</h2><p>评分规则尚未最终定稿，页面先按可配置权重展示。</p></div><select class="analytics-mini-select"><option>本次扫描</option><option>上次扫描</option><option>近 30 天均值</option></select></div>
+      <article class="panel geo-score-panel">
+        <div class="analytics-panel-head"><div><h2>全站 GEO 评分拆解</h2><p>评分规则尚未最终定稿，页面先按可配置权重展示。</p></div><select class="analytics-mini-select"><option>本次扫描</option><option>上次扫描</option><option>近 30 天均值</option></select></div>
         <div class="analytics-geo-score large">
-          <div class="analytics-meter" style="--value: 263deg"><strong>73</strong><span>全站得分</span></div>
-          <div class="analytics-metric-list score-rules">
-            <div><span>内容与知识完整性 25%</span><b>17</b><em class="warn" style="width:68%"></em></div>
-            <div><span>问答覆盖 20%</span><b>11</b><em class="risk" style="width:55%"></em></div>
-            <div><span>品牌实体一致性 20%</span><b>16</b><em style="width:80%"></em></div>
-            <div><span>页面可抓取性 20%</span><b>17</b><em style="width:85%"></em></div>
-            <div><span>结构化与可信证据 15%</span><b>12</b><em class="warn" style="width:78%"></em></div>
+          <div class="geo-score-hero">
+            <div class="analytics-meter" style="--value: 263deg"><strong>73</strong><span>全站得分</span></div>
+            <dl>
+              <div><dt>目标分</dt><dd>85</dd></div>
+              <div><dt>低分页</dt><dd>5</dd></div>
+            </dl>
+            <p>当前主要短板集中在问答覆盖、案例证据和产品参数。</p>
           </div>
-        </div>
-      </article>
-      <article class="panel">
-        <div class="analytics-panel-head"><div><span>优化判断</span><h2>这次应该引导用户做什么</h2></div><button type="button">${icon("i-refresh")}</button></div>
-        <div class="geo-decision-list">
-          <div class="risk"><i>1</i><div><b>先补企业知识库</b><span>FAQ、案例和产品参数不足，是当前扣分主因。</span></div><em>P0</em></div>
-          <div class="warn"><i>2</i><div><b>重写解决方案页</b><span>/solutions 得分 66，缺少场景问题和落地证据。</span></div><em>P1</em></div>
-          <div><i>3</i><div><b>发布 FAQ 页面</b><span>FAQ 未发布，导致问答覆盖分长期偏低。</span></div><em>P1</em></div>
-          <div><i>4</i><div><b>复查 AI Bot 最近访问页</b><span>Bot 主要抓首页和产品页，低分页抓取偏少。</span></div><em>辅助</em></div>
+          <div class="analytics-metric-list score-rules">
+            ${scoreRules.map(([label, score, weight, width, tone]) => `<div><span>${label}<small>${weight}</small></span><b>${score}</b><em class="${tone}" style="width:${width}%"></em></div>`).join("")}
+          </div>
         </div>
       </article>
     </section>
     <section class="panel analytics-table-panel">
-      <div class="analytics-panel-head"><div><span>页面级诊断</span><h2>每个页面的分数、短板和下一步动作</h2></div><button type="button">${icon("i-upload")} 上传资料</button></div>
+      <div class="analytics-panel-head"><div><h2>每个页面的分数、短板和下一步动作</h2></div></div>
       <div class="analytics-table-scroll">
         <table class="analytics-table geo-page-table">
-          <thead><tr><th>页面</th><th>GEO 分</th><th>优化前 / 后</th><th>主要短板</th><th>AI Bot 抓取</th><th>最近抓取</th><th>建议动作</th></tr></thead>
+          <thead><tr><th>页面</th><th>GEO 分</th><th>优化前 / 后</th><th>主要短板</th><th>建议动作</th></tr></thead>
           <tbody>
-            ${pages.map(page => `<tr><td><button class="analytics-link-text" data-geo-page="${page.id}" data-geo-analytics-tab="pages" type="button">${page.label}</button><span>${page.path}</span></td><td>${renderGeoScore(page.score)}</td><td><span class="geo-mini-bars"><i style="width:${Math.max(page.before, 8)}%"></i><i style="width:${page.score}%"></i></span></td><td>${page.issue}</td><td>${page.botHits} 次</td><td><b>${page.lastCrawl}</b><span>${page.bot}</span></td><td><button class="analytics-row-button" data-geo-page="${page.id}" data-geo-analytics-tab="pages" type="button">${page.action}</button></td></tr>`).join("")}
+            ${pages.map(page => `<tr><td><button class="analytics-link-text" data-geo-page="${page.id}" data-geo-analytics-tab="pages" type="button">${page.label}</button><span>${page.path}</span></td><td>${renderGeoScore(page.score)}</td><td><span class="geo-mini-bars"><i style="width:${Math.max(page.before, 8)}%"></i><i style="width:${page.score}%"></i></span></td><td>${page.issue}</td><td><a class="analytics-row-button" href="index.html?demo=1&section=knowledge&kbTab=${page.kbTab}" data-geo-kb-tab="${page.kbTab}">${page.knowledgeAction}</a></td></tr>`).join("")}
           </tbody>
         </table>
       </div>
@@ -2720,20 +2749,54 @@ function renderGeoOverview() {
 }
 
 function renderGeoCrawlerSummary() {
+  const trendValues = [18, 21, 19, 24, 28, 25, 31, 34, 29, 36, 39, 35, 42, 46, 40, 48, 52, 49, 57, 61, 55, 64, 70, 66, 74, 72, 78, 81, 84, 86];
+  const chart = { width: 680, height: 236, left: 46, top: 24, right: 58, bottom: 38, max: 110 };
+  const chartWidth = chart.width - chart.left - chart.right;
+  const chartHeight = chart.height - chart.top - chart.bottom;
+  const toPoint = (value, index) => ({
+    x: chart.left + (chartWidth / (trendValues.length - 1)) * index,
+    y: chart.top + (1 - value / chart.max) * chartHeight
+  });
+  const points = trendValues.map(toPoint);
+  const linePath = points.map((point, index) => `${index ? "L" : "M"}${point.x.toFixed(1)} ${point.y.toFixed(1)}`).join(" ");
+  const areaPath = `M${chart.left} ${chart.top + chartHeight} ${points.map(point => `L${point.x.toFixed(1)} ${point.y.toFixed(1)}`).join(" ")} L${chart.left + chartWidth} ${chart.top + chartHeight} Z`;
+  const yTicks = [0, 25, 50, 75, 100];
+  const xTicks = [[0, "04/29"], [6, "05/05"], [13, "05/12"], [20, "05/19"], [29, "05/28"]];
+  const crawlRecords = [
+    ["TOP 1", "首页", "68", "今天 09:12"],
+    ["TOP 2", "产品服务页", "52", "今天 09:41"],
+    ["TOP 3", "解决方案页", "31", "昨天 22:08"],
+    ["TOP 4", "客户案例页", "27", "昨天 18:34"],
+    ["TOP 5", "新闻资讯页", "19", "05/26 16:20"]
+  ];
   return `<section class="analytics-detail-grid geo-crawler-summary">
     <article class="panel">
-      <div class="analytics-panel-head"><div><span>AI Bot 访问</span><h2>近 7 天抓取趋势</h2><p>来自服务器访问日志和 User-Agent 识别。</p></div></div>
-      <div class="geo-bot-chart" aria-label="AI Bot 近 7 天抓取趋势">
-        ${[38, 42, 58, 46, 70, 64, 82].map((height, index) => `<div><i style="height:${height}%"></i><span>05/${22 + index}</span></div>`).join("")}
+      <div class="analytics-panel-head"><div><h2>AI抓取趋势</h2><p>近30天 AI 抓取次数，来自服务器访问日志和 User-Agent 识别。</p></div></div>
+      <div class="geo-line-chart" aria-label="近30天AI抓取趋势折线图">
+        <svg viewBox="0 0 ${chart.width} ${chart.height}" role="img" aria-label="近30天AI抓取趋势，纵轴为抓取次数，横轴为日期">
+          <text class="geo-line-axis-title" x="${chart.left}" y="12">抓取次数</text>
+          <text class="geo-line-axis-title" x="${chart.left + chartWidth + 34}" y="${chart.height - 4}">日期</text>
+          ${yTicks.map(value => {
+            const y = chart.top + (1 - value / chart.max) * chartHeight;
+            return `<g><line class="geo-line-grid" x1="${chart.left}" y1="${y.toFixed(1)}" x2="${chart.left + chartWidth}" y2="${y.toFixed(1)}"></line><text class="geo-line-label" x="${chart.left - 12}" y="${(y + 4).toFixed(1)}">${value}</text></g>`;
+          }).join("")}
+          <line class="geo-line-axis" x1="${chart.left}" y1="${chart.top + chartHeight}" x2="${chart.left + chartWidth}" y2="${chart.top + chartHeight}"></line>
+          <line class="geo-line-axis" x1="${chart.left}" y1="${chart.top}" x2="${chart.left}" y2="${chart.top + chartHeight}"></line>
+          <path class="geo-line-area" d="${areaPath}"></path>
+          <path class="geo-line-path" d="${linePath}"></path>
+          ${xTicks.map(([index, label]) => {
+            const point = points[index];
+            return `<g><circle class="geo-line-dot" cx="${point.x.toFixed(1)}" cy="${point.y.toFixed(1)}" r="4.2"></circle><text class="geo-line-label x" x="${point.x.toFixed(1)}" y="${chart.top + chartHeight + 24}">${label}</text></g>`;
+          }).join("")}
+          <text class="geo-line-value" x="${(points[29].x - 4).toFixed(1)}" y="${(points[29].y - 12).toFixed(1)}">86次</text>
+        </svg>
       </div>
     </article>
     <article class="panel">
-      <div class="analytics-panel-head"><div><span>爬虫明细</span><h2>谁抓了哪些页面</h2></div><span class="analytics-tag bot">辅助信号</span></div>
+      <div class="analytics-panel-head"><div><h2>页面抓取记录</h2></div></div>
       <div class="geo-bot-list">
-        <div><b>GPTBot</b><span>首页、产品服务、客户案例</span><strong>68</strong><small>今天 09:12</small></div>
-        <div><b>ClaudeBot</b><span>产品服务、关于我们</span><strong>42</strong><small>今天 09:41</small></div>
-        <div><b>PerplexityBot</b><span>首页、解决方案</span><strong>31</strong><small>昨天 22:08</small></div>
-        <div><b>其他 AI Bot</b><span>新闻资讯、产品服务</span><strong>45</strong><small>近 7 天</small></div>
+        <div class="geo-bot-list-head"><span></span><span>页面</span><span>总抓取次数</span><span>最近一次抓取</span></div>
+        ${crawlRecords.map(([rank, page, count, time]) => `<div><i>${rank}</i><b>${page}</b><strong>${count}</strong><small>${time}</small></div>`).join("")}
       </div>
     </article>
   </section>`;
@@ -3092,6 +3155,16 @@ function bindEvents() {
   $$("[data-geo-page]").forEach(btn => btn.addEventListener("click", () => {
     state.geoAnalyticsPage = btn.dataset.geoPage;
     if (btn.dataset.geoAnalyticsTab) state.geoAnalyticsTab = btn.dataset.geoAnalyticsTab;
+    render();
+  }));
+  $$("[data-geo-kb-tab]").forEach(btn => btn.addEventListener("click", event => {
+    event.preventDefault();
+    const targetTab = btn.dataset.geoKbTab;
+    state.section = "knowledge";
+    state.kbTab = kbTabs.some(tab => tab.id === targetTab) ? targetTab : "company";
+    state.kbManagePage = null;
+    state.navMenuOpen = false;
+    localStorage.setItem("clone_section", state.section);
     render();
   }));
   $$("[data-page-report-tab]").forEach(btn => btn.addEventListener("click", () => {
